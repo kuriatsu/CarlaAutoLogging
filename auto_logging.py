@@ -27,7 +27,7 @@ def main():
             tm.vehicle_percentage_speed_difference(actor, 0)
             tm.ignore_lights_percentage(actor, 100)
 
-    for i in range(1, 150):
+    for i in range(3, 150):
 
         ego_vehicle = None
 
@@ -42,6 +42,9 @@ def main():
                 actor = world.get_actor(response.actor_id)
                 if actor.attributes.get('role_name') == 'hero':
                     ego_vehicle = actor
+        # ego_vehicle = world.spawn_actor(blueprint, transform)
+        world.wait_for_tick()
+        ego_vehicle.set_autopilot(True)
 
         if ego_vehicle is None:
             continue
@@ -49,9 +52,9 @@ def main():
         tm.vehicle_percentage_speed_difference(ego_vehicle, 0)
         tm.ignore_lights_percentage(ego_vehicle, 100)
 
-        log_file = 'test_{}.log'.format(str(i))
+        log_file = '/home/kuriatsu/Source/CarlaAutoLogging/test_{}.log'.format(str(i))
         client.start_recorder(log_file)
-        waypoint_file = 'test_{}.csv'.format(str(i))
+        waypoint_file = '/home/kuriatsu/Source/CarlaAutoLogging/test_{}.csv'.format(str(i))
 
         print(log_file, waypoint_file)
 
