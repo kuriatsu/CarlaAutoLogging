@@ -60,7 +60,7 @@ def getWp(actor):
     trans = ego_vehicle.get_transform()
     vel = ego_vehicle.get_velocity()
     speed = (vel.x ** 2 + vel.y ** 2) ** 0.5
-    wp = [trans.location.x, -trans.location.y, trans.location.z, -np.degrees(trans.rotation.yaw), speed, 0]
+    wp = [trans.location.x, -trans.location.y, trans.location.z, -trans.rotation.yaw, speed, 0]
 
 
 def getDistStepActorData(actor_list)
@@ -79,20 +79,27 @@ def getDistStepActorData(actor_list)
 def getTimeStepActorData(world_data, world, ego_vehicle):
 
     data{}
+    trans = ego_vehicle.get_transform()
+    vel = ego_vehicle.get_velocity()
     data['ego_vehicle'] = {
         'type' : ego_vehicle.type_id,
-        'waypoint' : getWp(ego_vehicle),
+        'pose' : [trans.location.x, -trans.location.y, trans.location.z, -trans.rotation.yaw],
+        'speed' : (vel.x ** 2 + vel.y ** 2) ** 0.5,
         'size': ego_vehicle.bounding_box.extent,
         }
 
     for actor in actor_list:
+        trans = actor.get_transform()
+        vel = actor.get_velocity()
         data[actor.id] = {
             'type' : actor.type_id,
-            'waypoint' : getWp(actor),
+            'pose' : [trans.location.x, -trans.location.y, trans.location.z, -trans.rotation.yaw],
+            'speed' : (vel.x ** 2 + vel.y ** 2) ** 0.5,
             'size': actor.bounding_box.extent,
             }
 
     return data
+
 
 def drive_loop(world, actor_list, ego_vehicle, dist_step_data, time_step_data):
 
@@ -159,7 +166,7 @@ def main():
 
     setupTrafficManager(client, tm)
 
-    for i in range(1, 150):
+    for i in range(1, (sys.arg[2])):
         log_name = sys.args[1]
         log_file = '/home/kuriatsu/Source/CarlaAutoLogging/{}_{}.log'.format(log_name, str(i))
         dist_step_file = '/home/kuriatsu/Source/CarlaAutoLogging/{}_{}_dist.pickle'.format(log_name, str(i))
@@ -186,3 +193,6 @@ def main():
         with open(time_step_file, 'wb') as f:
             pickle.dump(time_step_data, f)
 
+
+if __name__ == '__main__':
+    main()
