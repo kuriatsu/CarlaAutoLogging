@@ -7,7 +7,7 @@ import pickle
 import sys
 import numny as np
 
-#from autoware_msgs.msg import DetectedObjectArray
+from autoware_msgs.msg import Waypoint, LaneArray, Lane
 from geometry_msgs.msg import PoseStamped, Point32
 from sensor_msgs.msg import PointCloud, ChannelFloat32
 import tf
@@ -17,6 +17,7 @@ class PlayCarlaData():
     def __init__(self, data_file):
         self.pub_objects = rospy.Publisher('/detection/contour_tracker/objects', DetectedObjectArray, queue_size=5)
         self.pub_initial_pose = rospy.Publisher('/initial_pose', PoseStamped, queue_size=1)
+        self.pub_waypoint = rospy.Publisher('/lane_waypoints_array', queue_size=1, latch=True)
         self.sub_current_pose = rospy.Subscriber('/current_pose', PoseStamped, self.currentPoseCb)
         self.tf_broadcaster = tf.TransformBroadcaster()
         self.tf_listener = tf.TransformListener()
@@ -104,7 +105,30 @@ class PlayCarlaData():
         self.pubActorObjInfo(self.data[self.current_data_index].get('actors'))
 
 
-    def init_pose(self, data)
+    def pubWaypoint(self, data_list):
+        lane_array = LaneArray()
+        lane = Lane()
+
+        for data in data_list:
+            waypoint = Waypoint()
+            waypoint.pose.pose.position.x = data.get('waypoint')[0]
+            waypoint.pose.pose.position.y = data.get('waypoint')[1]
+            waypoint.pose.pose.position.z = data.get('waypoint')[2]
+            waypoint.pose.pose.orientation = self.yawToQuat(data.get('waypoint')[3])
+            waypoint.twist.twist.linear.x = data.get('waypoint')[4]
+            waypoint.gid = 1
+            waypoint.wpstate.event_state = 1
+            waypoint.lane_id = 1
+            lane.waypoints.append(waypoint)
+
+        lane_array.header.stamp = rospy.Time.now()
+        lane_array.header.frame_id = 'map'
+        lane_array.lane_id = 1
+        lane_array.lanes.append(lane)
+        self.pub_waypoint(lane_array)
+        
+
+    def init_pose(self, data):
         pose = PoseStamped()
         pose.position.x = data.get('waypoint')[0]
         pose.position.y = data.get('waypoint')[1]
