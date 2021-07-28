@@ -77,7 +77,7 @@ def main():
                 trans = ego_vehicle.get_transform()
                 vel = ego_vehicle.get_velocity()
                 speed = (vel.x ** 2 + vel.y ** 2) ** 0.5
-                waypoint.append([trans.location.x, trans.location.y, trans.location.z, trans.rotation.yaw, speed, 0])
+                waypoint.append([trans.location.x, trans.location.y, trans.location.z, -np.radians(trans.rotation.yaw), speed, 0])
                 waypoint_step = 0.0
 
             print(travel_dist)
