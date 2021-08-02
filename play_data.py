@@ -6,6 +6,7 @@ import time
 import pickle
 import sys
 import numpy as np
+import subprocess
 
 from std_msgs.msg import Header
 from autoware_msgs.msg import Waypoint, LaneArray, Lane, DetectedObjectArray, DetectedObject
@@ -27,24 +28,25 @@ class PlayCarlaData():
         self.tf_listener = tf.TransformListener()
         self.current_data_index = 0
 
-        self.pub_cloud = rospy.Publisher('/points_raw', PointCloud2, queue_size=5)
+        self.pub_cloud = rospy.Publisher('/points_no_ground', PointCloud2, queue_size=5)
         self.pub_object = rospy.Publisher('/detection/contour_tracker/objects', DetectedObjectArray, queue_size=5)
         self.pub_initial_pose = rospy.Publisher('/initialpose', PoseWithCovarianceStamped, queue_size=5)
         self.pub_waypoint = rospy.Publisher('/lane_waypoints_array', LaneArray, queue_size=1, latch=True)
         self.sub_current_pose = rospy.Subscriber('/current_pose', PoseStamped, self.currentPoseCb)
 
         self.init_pose(self.data[0])
+        self.setWaypoint(self.data)
         self.pubActorTf(self.data[0].get('actors'))
 
 
     def yawToQuat(self, yaw):
-        quat = tf.transformations.quaternion_from_euler(0.0, 0.0, yaw)
+        quat = tf.transformations.quaternion_from_euler(0.0, 0.0, np.radians(yaw))
         return Quaternion(x=quat[0], y=quat[1], z=quat[2], w=quat[3])
 
 
     def pubActorTf(self, actors):
         for id, actor in actors.items():
-            quaternion = self.yawToQuat(actor.get('waypoint')[4])
+            quaternion = self.yawToQuat(actor.get('waypoint')[3])
             self.tf_broadcaster.sendTransform(
                 (actor.get('waypoint')[0], actor.get('waypoint')[1], actor.get('waypoint')[2]),
                 (quaternion.x, quaternion.y, quaternion.z, quaternion.w),
@@ -64,7 +66,7 @@ class PlayCarlaData():
         point_cloud = []
 
         for id, actor in actors.items():
-            polygon = self.calcPolygon(str(id), actor)
+            polygon = self.calcPolygon(str(id), actor, cloud_header.frame_id)
             for polygon_point in polygon.points:
                 point = [polygon_point.x, polygon_point.y, polygon_point.z, 0xffffff]
                 point_cloud.append(point)
@@ -73,9 +75,9 @@ class PlayCarlaData():
         self.pub_cloud.publish(cloud)
 
 
-    def calcPolygon(self, frame_id, actor):
+    def calcPolygon(self, source_frame, actor, target_frame):
         polygon_stamped = Polygon()
-        buf_header = Header(stamp=rospy.Time(0), frame_id=frame_id)
+        buf_header = Header(stamp=rospy.Time(0), frame_id=source_frame)
 
         horizontal_edge_num = int(actor.get('size')[0] * 2 / 0.1)
         for i in range(0, horizontal_edge_num):
@@ -84,11 +86,11 @@ class PlayCarlaData():
             buf_point_stamped.point.x = -actor.get('size')[0] + 0.1 * i
             buf_point_stamped.point.y = actor.get('size')[1]
             buf_point_stamped.point.z = 0.0
-            transformed_point = self.tf_listener.transformPoint('map', buf_point_stamped)
+            transformed_point = self.tf_listener.transformPoint(target_frame, buf_point_stamped)
             polygon_stamped.points.append(transformed_point.point)
 
             buf_point_stamped.point.y *= -1
-            transformed_point = self.tf_listener.transformPoint('map', buf_point_stamped)
+            transformed_point = self.tf_listener.transformPoint(target_frame, buf_point_stamped)
             polygon_stamped.points.append(transformed_point.point)
 
         vertical_edge_num = int(actor.get('size')[1] * 2 / 0.1)
@@ -98,11 +100,11 @@ class PlayCarlaData():
             buf_point_stamped.point.x = actor.get('size')[0]
             buf_point_stamped.point.y = -actor.get('size')[1] + 0.1 * i
             buf_point_stamped.point.z = 0.0
-            transformed_point = self.tf_listener.transformPoint('map', buf_point_stamped)
+            transformed_point = self.tf_listener.transformPoint(target_frame, buf_point_stamped)
             polygon_stamped.points.append(transformed_point.point)
 
             buf_point_stamped.point.x *= -1
-            transformed_point = self.tf_listener.transformPoint('map', buf_point_stamped)
+            transformed_point = self.tf_listener.transformPoint(target_frame, buf_point_stamped)
             polygon_stamped.points.append(transformed_point.point)
 
         return polygon_stamped
@@ -125,7 +127,7 @@ class PlayCarlaData():
             object.dimention.y = actor.get('size')[1]
             object.dimention.z = actor.get('size')[2]
             object.velocity = actor.get('waypoint')[4]
-            object.convex_hull.polygon = calcPolygon(str(id), actor)
+            object.convex_hull.polygon = calcPolygon(str(id), actor, object.header.frame_id)
             object.convex_hull.header = object.header
             object.pose_reliable = True
             object.velocity_reliable = True
@@ -143,15 +145,19 @@ class PlayCarlaData():
 
         if dist_to_current_wp > dist_to_next_wp:
             self.current_data_index += 1
+            if self.current_data_index > len(self.data):
+                exit()
 
         self.pubActorTf(self.data[self.current_data_index].get('actors'))
         self.pubActorCloud(self.data[self.current_data_index].get('actors'))
 
 
-    def pubWaypoint(self, data_list):
+    def setWaypoint(self, data_list):
         lane_array = LaneArray()
         lane = Lane()
-
+        lane.header.stamp = rospy.Time.now()
+        lane.header.frame_id = 'map'
+        lane.lane_id = 1
         for data in data_list:
             waypoint = Waypoint()
             waypoint.pose.pose.position.x = data.get('waypoint')[0]
@@ -164,39 +170,18 @@ class PlayCarlaData():
             waypoint.lane_id = 1
             lane.waypoints.append(waypoint)
 
-        lane_array.header.stamp = rospy.Time.now()
-        lane_array.header.frame_id = 'map'
-        lane_array.lane_id = 1
         lane_array.lanes.append(lane)
         self.pub_waypoint.publish(lane_array)
 
 
     def init_pose(self, data):
-        pose_stamped = PoseStamped()
-        out_pose = PoseWithCovarianceStamped()
 
-        pose_stamped.header = Header(stamp=rospy.Time(0), frame_id="map", seq=8)
-        pose_stamped.pose.position.x = data.get('waypoint')[0]
-        pose_stamped.pose.position.y = data.get('waypoint')[1]
-        pose_stamped.pose.position.z = data.get('waypoint')[2]
-        pose_stamped.pose.orientation = self.yawToQuat(np.radians(data.get('waypoint')[3]))
-        pose_stamped.pose.orientation = self.yawToQuat(data.get('waypoint')[3])
-        self.tf_listener.waitForTransform('world', 'map', rospy.Time(0), rospy.Duration(10.0))
-        transformed_pose_stamped = self.tf_listener.transformPose("world", pose_stamped)
-
-        out_pose.header = Header(frame_id='map')
-        # out_pose.header = Header(stamp=rospy.Time.now(), frame_id='map', seq=10)
-        # out_pose.pose.pose = pose_stamped.pose
-        out_pose.pose.pose = Pose()
-        # out_pose.pose.covariance[0] = 0.25
-        # out_pose.pose.covariance[6*1 + 1] = 0.25
-        # out_pose.pose.covariance[6*5 + 5] = 0.06853892326654787
-        out_pose.pose.covariance[0] = 0.0
-        out_pose.pose.covariance[6*1 + 1] = 0.0
-        out_pose.pose.covariance[6*5 + 5] = 0.0
-        print(np.radians(data.get('waypoint')[3]))
-        self.pub_initial_pose.publish(out_pose)
-        print(out_pose)
+        waypoint = data.get('waypoint')
+        quat = self.yawToQuat(waypoint[3])
+        pose = waypoint[0:3] + [quat.x, quat.y, quat.z, quat.w]
+        command = ['bash', 'set_initialpose.sh'] + [str(i) for i in pose]
+        subprocess.call(command)
+        print(command)
 
 
 if __name__ == '__main__':
