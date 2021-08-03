@@ -6,4 +6,75 @@
   <!-- ego_vehicle/lidar to velodyne tf -->
   <node pkg="tf"  type="static_transform_publisher" name="lidar_to_base_link" args="1.2 0 2.0 0 0 0 /base_link /velodyne 10" />
 
+  <include file="$(find autoware_connector)/launch/vel_pose_connect.launch">
+      <arg name="topic_pose_stamped" value="/ndt_pose"/>
+      <arg name="topic_twist_stamped" value="/estimate_twist"/>
+      <arg name="sim_mode" value="true"/>
+  </include>
+
+  <include file="$(find lane_planner)/launch/lane_rule_option.launch">
+  </include>
+  <include file="$(find lane_planner)/launch/lane_select.launch">
+      <arg name="search_closest_waypoint_minimum_dt" value="5"/>
+  </include>
+
+  <include file="$(find waypoint_planner)/launch/astar_avoid.launch">
+      <arg name="enable_avoidance" value="false"/>
+  </include>
+  <include file="$(find waypoint_planner)/launch/velocity_set_option.launch">
+      <arg name="points_topic" value="points_no_ground"/>
+      <arg name="use_ll2" value="false"/>
+  </include>
+  <node pkg="rostopic" type="rostopic" name="velocity_set_config" args="
+        header:
+          seq: 3
+          stamp:
+            secs: 0
+            nsecs:         0
+          frame_id: ''
+        stop_distance_obstacle: 10.0
+        stop_distance_stopline: 5.0
+        detection_range: 1.29999995232
+        threshold_points: 5
+        detection_height_top: 0.10000000149
+        detection_height_bottom: -1.5
+        deceleration_obstacle: 0.699999988079
+        deceleration_stopline: 0.300000011921
+        velocity_change_limit: 7.0
+        deceleration_range: 1.0
+        temporal_waypoints_size: 100.0
+        "
+    />
+
+    <include file="$(find pure_pursuit)/launch/pure_pursuit.launch">
+        <arg name="is_linear_interpolation" value="true"/>
+        <arg name="publishes_for_steering_robot" value="true"/>
+        <arg name="add_virtual_end_waypoints" value="false"/>
+    </include>
+    <node pkg="rostopic" type="rostopic" name="pure_pursuit_config" args="
+        header:
+          seq: 5
+          stamp:
+            secs: 0
+            nsecs:         0
+          frame_id: ''
+        param_flag: 0
+        velocity: 5.0
+        lookahead_distance: 4.0
+        lookahead_ratio: 2.0
+        minimum_lookahead_distance: 6.0
+        displacement_threshold: 0.0
+        relative_angle_threshold: 0.0
+        "
+      />
+      
+      <include file="$(find twist_filter)/launch/twist_filter.launch">
+          <arg name="use_decision_maker" value="false"/>
+      </include>
+      <include file="$(find wf_simulator)/launch/wf_simulator.launch">
+          <arg name="initialize_source" value="RVIZ"/>
+          <arg name="simulation_frame_id" value="base_link"/>
+      </include>
+
+
 </launch>
