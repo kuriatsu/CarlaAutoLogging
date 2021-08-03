@@ -10,6 +10,7 @@ import numny as np
 #from autoware_msgs.msg import DetectedObjectArray
 from geometry_msgs.msg import PoseStamped, Point32, Twist
 from sensor_msgs.msg import PointCloud, ChannelFloat32
+from std_msgs.msg import Int16, Bool
 import tf
 
 class AutoIntervention():
@@ -28,77 +29,80 @@ class AutoIntervention():
         self.tf_listener = tf.TransformListener()
 
         self.pub_twist = rospy.Publisher('/twist_cmd', Twist, queue_size=1)
+        self.pub_intervention = rospy.Publisher('/is_intervention', Bool, queue_size=1)
         self.sub_twist = rospy.Subscriber('/twist_cmd_autoware', Twist, self.twistCb)
-        self.sub_current_pose = rospy.Subscriber('/current_pose', PoseStamped, self.currentPoseCb)
+        self.sub_current_scenario = rospy.Subscriber('/current_scenario', Int16, self.currentScenarioCb)
         rospy.Timer(rospy.Duration(0.5), self.storeData)
 
 
-    def quatToYaw(orientation):
-        euler = tf.transformations.euler_from_quaternion((orientation.x, orientation.y, orientation.z, orientation.w))
-        return euler[2]
+    # def quatToYaw(orientation):
+    #     euler = tf.transformations.euler_from_quaternion((orientation.x, orientation.y, orientation.z, orientation.w))
+    #     return euler[2]
 
-
-    def currentPoseCb(self, msg):
-        self.current_pose = msg.pose
-        current_wp = self.data[self.current_data_index].get('waypoint')
-        next_wp = self.data[self.current_data_index+1].get('waypoint')
-        dist_to_current_wp = (msg.pose.position.x - current_wp[0]) ** 2 + (msg.pose.position.y - current_wp[1]) ** 2
-        dist_to_next_wp = (msg.pose.position.x - next_wp[0]) ** 2 + (msg.pose.position.y - next_wp[1]) ** 2
-
-        if dist_to_current_wp > dist_to_next_wp:
-            self.current_data_index += １
-
-        if self.current_data_index == len(self.data - 1):
-            self.saveData()
-            exit()
+    def currentScenarioCb(self, msg):
+        self.current_data_index = msg.data
+    # def currentPoseCb(self, msg):
+    #     self.current_pose = msg.pose
+    #     current_wp = self.data[self.current_data_index].get('waypoint')
+    #     next_wp = self.data[self.current_data_index+1].get('waypoint')
+    #     dist_to_current_wp = (msg.pose.position.x - current_wp[0]) ** 2 + (msg.pose.position.y - current_wp[1]) ** 2
+    #     dist_to_next_wp = (msg.pose.position.x - next_wp[0]) ** 2 + (msg.pose.position.y - next_wp[1]) ** 2
+    #
+    #     if dist_to_current_wp > dist_to_next_wp:
+    #         self.current_data_index += １
+    #
+    #     if self.current_data_index == len(self.data - 1):
+    #         self.saveData()
+    #         exit()
 
     def twistCb(self, msg):
 
         if not self.intervention:
             return
 
-        carla_speed = self.data[self.current_data_index].get('ego_vehicle').get('speed')
+        intervention_thres = 10.0 / 3.6
+        carla_speed = self.data[self.current_data_index].get('waypoint')[4]
         autoware_speed = msg.twist.linear.x
         out_twist = Twist()
 
-        if carla_speed < autoware_speed:
+        if carla_speed - intervention_thres < carla_speed < autoware_speed + intervention_thres:
             out_twist = msg
-            out_twist.linear.x = carla_speed
-            self.intervened = True
+            self.pub_intervention.publish(Bool(data=False))
         else:
             out_twist = msg
-            self.intervened = False
+            out_twist.linear.x = carla_speed
+            self.pub_intervention.publish(Bool(data=True))
 
         self.pub_twist.publish(out_twist)
 
 
-    def storeData(self, event):
-        actors_data = {}
-        step_data = {}
-        actors_data['ego_vehicle'] = {
-                'type' = self.data[self.current_data_index].get('ego_vehicle').get('type'),
-                'pose' = [self.current_pose.position.x, self.current_pose.position.y, self.current_pose.position.y, self.quatToYaw(self.current_pose.orientation)]
-                'size' = self.data[self.current_data_index].get('ego_vehicle').get('size')
-                }
-
-        for id, actor in self.data[self.current_data_index].get('actors'):
-            actors_data[id] = {
-                'type' = actor.get('type'),
-                'pose' = actor.get('pose')
-                'size' = actor.get('ego_vehicle').get('size')
-                }
-
-        step_data = {
-            'time' : rospy.Time.now(),
-            'actors' : actors_data,
-            'intervention' : self.intervened
-            }
-        self.time_step_data.append(step_data)
-
-
-    def saveData(self):
-        with open(self.out_data_file, 'wb') as f:
-            pickle.dump(time_step_data, f)
+    # def storeData(self, event):
+    #     actors_data = {}
+    #     step_data = {}
+    #     actors_data['ego_vehicle'] = {
+    #             'type' = self.data[self.current_data_index].get('ego_vehicle').get('type'),
+    #             'pose' = [self.current_pose.position.x, self.current_pose.position.y, self.current_pose.position.y, self.quatToYaw(self.current_pose.orientation)]
+    #             'size' = self.data[self.current_data_index].get('ego_vehicle').get('size')
+    #             }
+    #
+    #     for id, actor in self.data[self.current_data_index].get('actors'):
+    #         actors_data[id] = {
+    #             'type' = actor.get('type'),
+    #             'pose' = actor.get('pose')
+    #             'size' = actor.get('ego_vehicle').get('size')
+    #             }
+    #
+    #     step_data = {
+    #         'time' : rospy.Time.now(),
+    #         'actors' : actors_data,
+    #         'intervention' : self.intervened
+    #         }
+    #     self.time_step_data.append(step_data)
+    #
+    #
+    # def saveData(self):
+    #     with open(self.out_data_file, 'wb') as f:
+    #         pickle.dump(time_step_data, f)
 
 
 if __name__ == '__main__':

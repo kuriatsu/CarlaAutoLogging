@@ -8,9 +8,9 @@ import sys
 import numpy as np
 import subprocess
 
-from std_msgs.msg import Header
+from std_msgs.msg import Header, Int16
 from autoware_msgs.msg import Waypoint, LaneArray, Lane, DetectedObjectArray, DetectedObject
-from geometry_msgs.msg import PoseStamped, Point32, Quaternion, PointStamped, PoseWithCovarianceStamped, PolygonStamped, Polygon, Pose
+from geometry_msgs.msg import PoseStamped, Point, Quaternion, PointStamped, PoseWithCovarianceStamped, PolygonStamped, Polygon, Pose
 from sensor_msgs.msg import PointCloud2, PointField
 import sensor_msgs.point_cloud2 as pc2
 import tf
@@ -32,6 +32,7 @@ class PlayCarlaData():
         self.pub_object = rospy.Publisher('/detection/contour_tracker/objects', DetectedObjectArray, queue_size=5)
         self.pub_initial_pose = rospy.Publisher('/initialpose', PoseWithCovarianceStamped, queue_size=5)
         self.pub_waypoint = rospy.Publisher('/lane_waypoints_array', LaneArray, queue_size=1, latch=True)
+        self.pub_scenario = rospy.Publisher('/current_scenario', Int16, queue_size=1)
         self.sub_current_pose = rospy.Subscriber('/current_pose', PoseStamped, self.currentPoseCb)
 
         self.init_pose(self.data[0])
@@ -79,33 +80,62 @@ class PlayCarlaData():
         polygon_stamped = Polygon()
         buf_header = Header(stamp=rospy.Time(0), frame_id=source_frame)
 
-        horizontal_edge_num = int(actor.get('size')[0] * 2 / 0.1)
+        try:
+            transform, quaternion = self.tf_listener.lookupTransform(target_frame, source_frame, rospy.Time(0))
+        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+            return
+
+        source_matrix = tf.transformations.quaternion_matrix([0,0,0,0])
+        transform_matrix = tf.transformations.quaternion_matrix(quaternion)
+        transform_matrix[0,3] = transform[0]
+        transform_matrix[1,3] = transform[1]
+        transform_matrix[2,3] = transform[2]
+
+        horizontal_edge_num = int(actor.get('size')[0] * 2 / 0.2)
         for i in range(0, horizontal_edge_num):
-            buf_point_stamped = PointStamped()
-            buf_point_stamped.header = buf_header
-            buf_point_stamped.point.x = -actor.get('size')[0] + 0.1 * i
-            buf_point_stamped.point.y = actor.get('size')[1]
-            buf_point_stamped.point.z = 0.0
-            transformed_point = self.tf_listener.transformPoint(target_frame, buf_point_stamped)
-            polygon_stamped.points.append(transformed_point.point)
+            source_matrix[0,3] = -actor.get('size')[0] + 0.1 * i
+            source_matrix[1,3] = actor.get('size')[1]
+            source_matrix[2,3] = 0.0
+            target_matrix = np.dot(transform_matrix, source_matrix)
+            target_point = Point()
+            target_point.x = target_matrix[0, 3]
+            target_point.y = target_matrix[1, 3]
+            target_point.z = target_matrix[2, 3]
+            # transformed_point = self.tf_listener.transformPoint(target_frame, target_point)
+            # print('1', target_point)
+            polygon_stamped.points.append(target_point)
 
-            buf_point_stamped.point.y *= -1
-            transformed_point = self.tf_listener.transformPoint(target_frame, buf_point_stamped)
-            polygon_stamped.points.append(transformed_point.point)
+            source_matrix[1,3] = -actor.get('size')[1]
+            target_matrix = np.dot(transform_matrix, source_matrix)
+            target_point.x = target_matrix[0, 3]
+            target_point.y = target_matrix[1, 3]
+            target_point.z = target_matrix[2, 3]
+            # print('2', target_point)
+            # target_point.y *= -1
+            # transformed_point = self.tf_listener.transformPoint(target_frame, target_point)
+            polygon_stamped.points.append(target_point)
 
-        vertical_edge_num = int(actor.get('size')[1] * 2 / 0.1)
+        vertical_edge_num = int(actor.get('size')[1] * 2 / 0.2)
         for i in range(0, vertical_edge_num):
-            buf_point_stamped = PointStamped()
-            buf_point_stamped.header = buf_header
-            buf_point_stamped.point.x = actor.get('size')[0]
-            buf_point_stamped.point.y = -actor.get('size')[1] + 0.1 * i
-            buf_point_stamped.point.z = 0.0
-            transformed_point = self.tf_listener.transformPoint(target_frame, buf_point_stamped)
-            polygon_stamped.points.append(transformed_point.point)
+            target_point = Point()
+            source_matrix[0,3] = actor.get('size')[0]
+            source_matrix[1,3] = -actor.get('size')[1] + 0.1 * i
+            source_matrix[2,3] = 0.0
+            target_matrix = np.dot(transform_matrix, source_matrix)
+            target_point.x = target_matrix[0, 3]
+            target_point.y = target_matrix[1, 3]
+            target_point.z = target_matrix[2, 3]
+            # transformed_point = self.tf_listener.transformPoint(target_frame, target_point)
+            polygon_stamped.points.append(target_point)
 
-            buf_point_stamped.point.x *= -1
-            transformed_point = self.tf_listener.transformPoint(target_frame, buf_point_stamped)
-            polygon_stamped.points.append(transformed_point.point)
+            source_matrix[0,3] = -actor.get('size')[0]
+            # target_point.point.x *= -1
+            target_matrix = np.dot(transform_matrix, source_matrix)
+            target_point.x = target_matrix[0, 3]
+            target_point.y = target_matrix[1, 3]
+            target_point.z = target_matrix[2, 3]
+            # transformed_point = self.tf_listener.transformPoint(target_frame, target_point)
+            polygon_stamped.points.append(target_point)
 
         return polygon_stamped
 
@@ -143,13 +173,15 @@ class PlayCarlaData():
         dist_to_current_wp = (msg.pose.position.x - current_wp[0]) ** 2 + (msg.pose.position.y - current_wp[1]) ** 2
         dist_to_next_wp = (msg.pose.position.x - next_wp[0]) ** 2 + (msg.pose.position.y - next_wp[1]) ** 2
 
+        print(current_wp, msg, len(self.data))
         if dist_to_current_wp > dist_to_next_wp:
             self.current_data_index += 1
-            if self.current_data_index > len(self.data):
+            self.pub_scenario.publish(Int16(data=self.current_data_index))
+            if self.current_data_index >= len(self.data):
                 exit()
 
         self.pubActorTf(self.data[self.current_data_index].get('actors'))
-        self.pubActorCloud(self.data[self.current_data_index].get('actors'))
+        # self.pubActorCloud(self.data[self.current_data_index].get('actors'))
 
 
     def setWaypoint(self, data_list):
@@ -165,6 +197,7 @@ class PlayCarlaData():
             waypoint.pose.pose.position.z = data.get('waypoint')[2]
             waypoint.pose.pose.orientation = self.yawToQuat(data.get('waypoint')[3])
             waypoint.twist.twist.linear.x = data.get('waypoint')[4]
+            # waypoint.twist.twist.linear.x = data.get('speed_limit')/3.6
             waypoint.gid = 1
             waypoint.wpstate.event_state = 1
             waypoint.lane_id = 1

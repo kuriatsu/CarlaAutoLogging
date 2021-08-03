@@ -121,10 +121,11 @@ def drive_loop(world, actor_list, ego_vehicle, dist_step_data, time_step_data):
         last_tick_loc = loc
         save_step_time += world.get_snapshot().timestamp.delta_seconds
 
-        print(wp_step_length)
         if wp_step_length > wp_interval:
             data = {
                 'waypoint' : getWp(ego_vehicle),
+                'speed_limit' : ego_vehicle.get_speed_limit(),
+                # 'traffic_light' : ego_vehicle.get_traffic_light_state(),
                 'actors' : getDistStepActorData(actor_list)
                 }
             dist_step_data.append(data)
@@ -140,6 +141,7 @@ def drive_loop(world, actor_list, ego_vehicle, dist_step_data, time_step_data):
 
         data_length = len(time_step_data) * save_interval
         travel_dist = len(dist_step_data) * wp_interval
+        print(travel_dist)
 
         if data_length > 30:
             if travel_dist < 20:
@@ -196,7 +198,7 @@ def main():
 
         client.stop_recorder()
 
-        client.apply_batch([carla.command.DestroyActor(ego_vehicle.id)])
+        # client.apply_batch([carla.command.DestroyActor(ego_vehicle.id)])
 
         with open(dist_step_file, 'wb') as f:
             pickle.dump(dist_step_data, f)
