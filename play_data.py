@@ -101,18 +101,13 @@ class PlayCarlaData():
             target_point.x = target_matrix[0, 3]
             target_point.y = target_matrix[1, 3]
             target_point.z = target_matrix[2, 3]
-            # transformed_point = self.tf_listener.transformPoint(target_frame, target_point)
-            # print('1', target_point)
             polygon_stamped.points.append(target_point)
 
-            source_matrix[1,3] = -actor.get('size')[1]
+            source_matrix[1,3] *= -1
             target_matrix = np.dot(transform_matrix, source_matrix)
             target_point.x = target_matrix[0, 3]
             target_point.y = target_matrix[1, 3]
             target_point.z = target_matrix[2, 3]
-            # print('2', target_point)
-            # target_point.y *= -1
-            # transformed_point = self.tf_listener.transformPoint(target_frame, target_point)
             polygon_stamped.points.append(target_point)
 
         vertical_edge_num = int(actor.get('size')[1] * 2 / 0.2)
@@ -125,16 +120,13 @@ class PlayCarlaData():
             target_point.x = target_matrix[0, 3]
             target_point.y = target_matrix[1, 3]
             target_point.z = target_matrix[2, 3]
-            # transformed_point = self.tf_listener.transformPoint(target_frame, target_point)
             polygon_stamped.points.append(target_point)
 
-            source_matrix[0,3] = -actor.get('size')[0]
-            # target_point.point.x *= -1
+            source_matrix[0,3] *= -1
             target_matrix = np.dot(transform_matrix, source_matrix)
             target_point.x = target_matrix[0, 3]
             target_point.y = target_matrix[1, 3]
             target_point.z = target_matrix[2, 3]
-            # transformed_point = self.tf_listener.transformPoint(target_frame, target_point)
             polygon_stamped.points.append(target_point)
 
         return polygon_stamped
@@ -181,7 +173,7 @@ class PlayCarlaData():
                 exit()
 
         self.pubActorTf(self.data[self.current_data_index].get('actors'))
-        # self.pubActorCloud(self.data[self.current_data_index].get('actors'))
+        self.pubActorCloud(self.data[self.current_data_index].get('actors'))
 
 
     def setWaypoint(self, data_list):
@@ -196,8 +188,8 @@ class PlayCarlaData():
             waypoint.pose.pose.position.y = data.get('waypoint')[1]
             waypoint.pose.pose.position.z = data.get('waypoint')[2]
             waypoint.pose.pose.orientation = self.yawToQuat(data.get('waypoint')[3])
-            waypoint.twist.twist.linear.x = data.get('waypoint')[4]
-            # waypoint.twist.twist.linear.x = data.get('speed_limit')/3.6
+            # waypoint.twist.twist.linear.x = data.get('waypoint')[4]
+            waypoint.twist.twist.linear.x = data.get('speed_limit')/3.6
             waypoint.gid = 1
             waypoint.wpstate.event_state = 1
             waypoint.lane_id = 1

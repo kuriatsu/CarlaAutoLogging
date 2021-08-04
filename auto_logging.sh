@@ -29,7 +29,7 @@ for play_data in ${play_list[@]}; do
 	python config.py -m $map
     python spawn_npc.py -n $vehicle -w $walker &
     spawn_np_ps = $!
-    python save_data.py $log_name $itr
+    python save_carla_data.py $log_name $itr
     kill -2 $spawn_np_ps
 
 done

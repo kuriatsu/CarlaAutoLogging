@@ -29,7 +29,7 @@ class AutoIntervention():
         self.tf_listener = tf.TransformListener()
 
         self.pub_twist = rospy.Publisher('/twist_cmd', Twist, queue_size=1)
-        self.pub_intervention = rospy.Publisher('/is_intervention', Bool, queue_size=1)
+        self.pub_intervention = rospy.Publisher('/is_intervened', Bool, queue_size=1)
         self.sub_twist = rospy.Subscriber('/twist_cmd_autoware', Twist, self.twistCb)
         self.sub_current_scenario = rospy.Subscriber('/current_scenario', Int16, self.currentScenarioCb)
         rospy.Timer(rospy.Duration(0.5), self.storeData)
@@ -41,19 +41,6 @@ class AutoIntervention():
 
     def currentScenarioCb(self, msg):
         self.current_data_index = msg.data
-    # def currentPoseCb(self, msg):
-    #     self.current_pose = msg.pose
-    #     current_wp = self.data[self.current_data_index].get('waypoint')
-    #     next_wp = self.data[self.current_data_index+1].get('waypoint')
-    #     dist_to_current_wp = (msg.pose.position.x - current_wp[0]) ** 2 + (msg.pose.position.y - current_wp[1]) ** 2
-    #     dist_to_next_wp = (msg.pose.position.x - next_wp[0]) ** 2 + (msg.pose.position.y - next_wp[1]) ** 2
-    #
-    #     if dist_to_current_wp > dist_to_next_wp:
-    #         self.current_data_index += １
-    #
-    #     if self.current_data_index == len(self.data - 1):
-    #         self.saveData()
-    #         exit()
 
     def twistCb(self, msg):
 
@@ -74,36 +61,7 @@ class AutoIntervention():
             self.pub_intervention.publish(Bool(data=True))
 
         self.pub_twist.publish(out_twist)
-
-
-    # def storeData(self, event):
-    #     actors_data = {}
-    #     step_data = {}
-    #     actors_data['ego_vehicle'] = {
-    #             'type' = self.data[self.current_data_index].get('ego_vehicle').get('type'),
-    #             'pose' = [self.current_pose.position.x, self.current_pose.position.y, self.current_pose.position.y, self.quatToYaw(self.current_pose.orientation)]
-    #             'size' = self.data[self.current_data_index].get('ego_vehicle').get('size')
-    #             }
-    #
-    #     for id, actor in self.data[self.current_data_index].get('actors'):
-    #         actors_data[id] = {
-    #             'type' = actor.get('type'),
-    #             'pose' = actor.get('pose')
-    #             'size' = actor.get('ego_vehicle').get('size')
-    #             }
-    #
-    #     step_data = {
-    #         'time' : rospy.Time.now(),
-    #         'actors' : actors_data,
-    #         'intervention' : self.intervened
-    #         }
-    #     self.time_step_data.append(step_data)
-    #
-    #
-    # def saveData(self):
-    #     with open(self.out_data_file, 'wb') as f:
-    #         pickle.dump(time_step_data, f)
-
+        
 
 if __name__ == '__main__':
     auto_intervention = AutoIntervention(sys.args[1], sys.args[2], sys.args[3])
