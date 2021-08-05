@@ -27,17 +27,21 @@ class PlayCarlaData():
         self.tf_broadcaster = tf.TransformBroadcaster()
         self.tf_listener = tf.TransformListener()
         self.current_data_index = 0
+        self.current_pose = None
 
         self.pub_cloud = rospy.Publisher('/points_no_ground', PointCloud2, queue_size=5)
         self.pub_object = rospy.Publisher('/detection/contour_tracker/objects', DetectedObjectArray, queue_size=5)
         self.pub_initial_pose = rospy.Publisher('/initialpose', PoseWithCovarianceStamped, queue_size=5)
-        self.pub_waypoint = rospy.Publisher('/lane_waypoints_array', LaneArray, queue_size=1, latch=True)
+        self.pub_waypoint = rospy.Publisher('/based/lane_waypoints_raw', LaneArray, queue_size=1, latch=True)
+        # self.pub_waypoint = rospy.Publisher('/lane_waypoints_array', LaneArray, queue_size=1, latch=True)
         self.pub_scenario = rospy.Publisher('/current_scenario', Int16, queue_size=1)
         self.sub_current_pose = rospy.Subscriber('/current_pose', PoseStamped, self.currentPoseCb)
 
         self.init_pose(self.data[0])
         self.setWaypoint(self.data)
         self.pubActorTf(self.data[0].get('actors'))
+
+        rospy.Timer(rospy.Duration(0.1), self.timerCb)
 
 
     def yawToQuat(self, yaw):
@@ -160,20 +164,40 @@ class PlayCarlaData():
 
 
     def currentPoseCb(self, msg):
-        current_wp = self.data[self.current_data_index].get('waypoint')
-        next_wp = self.data[self.current_data_index+1].get('waypoint')
-        dist_to_current_wp = (msg.pose.position.x - current_wp[0]) ** 2 + (msg.pose.position.y - current_wp[1]) ** 2
-        dist_to_next_wp = (msg.pose.position.x - next_wp[0]) ** 2 + (msg.pose.position.y - next_wp[1]) ** 2
+        self.current_pose = msg.pose
+        # current_wp = self.data[self.current_data_index].get('waypoint')
+        # next_wp = self.data[self.current_data_index+1].get('waypoint')
+        # dist_to_current_wp = (msg.pose.position.x - current_wp[0]) ** 2 + (msg.pose.position.y - current_wp[1]) ** 2
+        # dist_to_next_wp = (msg.pose.position.x - next_wp[0]) ** 2 + (msg.pose.position.y - next_wp[1]) ** 2
+        #
+        # print(current_wp, msg, len(self.data))
+        #     self.current_data_index += 1
+        #     self.pub_scenario.publish(Int16(data=self.current_data_index))
+        #     if self.current_data_index >= len(self.data):
+        #         exit()
 
-        print(current_wp, msg, len(self.data))
-        if dist_to_current_wp > dist_to_next_wp:
-            self.current_data_index += 1
-            self.pub_scenario.publish(Int16(data=self.current_data_index))
-            if self.current_data_index >= len(self.data):
-                exit()
+        # self.pubActorTf(self.data[self.current_data_index].get('actors'))
+        # # self.pubActorCloud(self.data[self.current_data_index].get('actors'))
 
-        self.pubActorTf(self.data[self.current_data_index].get('actors'))
-        self.pubActorCloud(self.data[self.current_data_index].get('actors'))
+
+    def timerCb(self, event):
+        if self.current_pose is None:
+            return
+
+        min_dist = 1000000
+        closest_data_index = None
+        for i, data in enumerate(self.data):
+            waypoint = data.get('waypoint')
+            position = self.current_pose.position
+            dist = (position.x - waypoint[0]) ** 2 + (position.y - waypoint[1]) ** 2
+            if min_dist > dist:
+                min_dist = dist
+                closest_data_index = i
+
+        # self.current_data_index = closest_data_index
+        self.pub_scenario.publish(Int16(data=closest_data_index))
+        self.pubActorTf(self.data[closest_data_index].get('actors'))
+        self.pubActorCloud(self.data[closest_data_index].get('actors'))
 
 
     def setWaypoint(self, data_list):
