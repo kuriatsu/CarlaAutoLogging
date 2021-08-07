@@ -10,6 +10,7 @@ import subprocess
 
 from std_msgs.msg import Header, Int16
 from autoware_msgs.msg import Waypoint, LaneArray, Lane, DetectedObjectArray, DetectedObject
+from autoware_config_msgs.msg import ConfigWaypointReplanner
 from geometry_msgs.msg import PoseStamped, Point, Quaternion, PointStamped, PoseWithCovarianceStamped, PolygonStamped, Polygon, Pose
 from sensor_msgs.msg import PointCloud2, PointField
 import sensor_msgs.point_cloud2 as pc2
@@ -28,20 +29,23 @@ class PlayCarlaData():
         self.tf_listener = tf.TransformListener()
         self.current_data_index = 0
         self.current_pose = None
+        self.config_replanner = None
 
         self.pub_cloud = rospy.Publisher('/points_no_ground', PointCloud2, queue_size=5)
         self.pub_object = rospy.Publisher('/detection/contour_tracker/objects', DetectedObjectArray, queue_size=5)
         self.pub_initial_pose = rospy.Publisher('/initialpose', PoseWithCovarianceStamped, queue_size=5)
         self.pub_waypoint = rospy.Publisher('/based/lane_waypoints_raw', LaneArray, queue_size=1, latch=True)
-        # self.pub_waypoint = rospy.Publisher('/lane_waypoints_array', LaneArray, queue_size=1, latch=True)
+        self.pub_config_replanner = rospy.Publisher('/config/waypoint_replanner', ConfigWaypointReplanner, queue_size=1)
         self.pub_scenario = rospy.Publisher('/current_scenario', Int16, queue_size=1)
+        self.sub_config_replanner = rospy.Subscriber('/config/waypoint_replanner', ConfigWaypointReplanner, self.configReplannerCb)
         self.sub_current_pose = rospy.Subscriber('/current_pose', PoseStamped, self.currentPoseCb)
 
         self.init_pose(self.data[0])
         self.setWaypoint(self.data)
         self.pubActorTf(self.data[0].get('actors'))
-
-        rospy.Timer(rospy.Duration(0.1), self.timerCb)
+        self.pubConfigReplanner(self.data[0].get('speed_limit'))
+        time.sleep(0.1)
+        self.timer = rospy.Timer(rospy.Duration(0.1), self.timerCb)
 
 
     def yawToQuat(self, yaw):
@@ -60,6 +64,7 @@ class PlayCarlaData():
                 'map'
                 )
 
+
     def pubActorCloud(self, actors):
         cloud_header = Header(stamp=rospy.Time.now(), frame_id='velodyne')
         cloud_field = [
@@ -72,6 +77,10 @@ class PlayCarlaData():
 
         for id, actor in actors.items():
             polygon = self.calcPolygon(str(id), actor, cloud_header.frame_id)
+            if polygon is None:
+                print('failed to get polygon')
+                continue
+
             for polygon_point in polygon.points:
                 point = [polygon_point.x, polygon_point.y, polygon_point.z, 0xffffff]
                 point_cloud.append(point)
@@ -165,19 +174,6 @@ class PlayCarlaData():
 
     def currentPoseCb(self, msg):
         self.current_pose = msg.pose
-        # current_wp = self.data[self.current_data_index].get('waypoint')
-        # next_wp = self.data[self.current_data_index+1].get('waypoint')
-        # dist_to_current_wp = (msg.pose.position.x - current_wp[0]) ** 2 + (msg.pose.position.y - current_wp[1]) ** 2
-        # dist_to_next_wp = (msg.pose.position.x - next_wp[0]) ** 2 + (msg.pose.position.y - next_wp[1]) ** 2
-        #
-        # print(current_wp, msg, len(self.data))
-        #     self.current_data_index += 1
-        #     self.pub_scenario.publish(Int16(data=self.current_data_index))
-        #     if self.current_data_index >= len(self.data):
-        #         exit()
-
-        # self.pubActorTf(self.data[self.current_data_index].get('actors'))
-        # # self.pubActorCloud(self.data[self.current_data_index].get('actors'))
 
 
     def timerCb(self, event):
@@ -194,8 +190,11 @@ class PlayCarlaData():
                 min_dist = dist
                 closest_data_index = i
 
-        # self.current_data_index = closest_data_index
+        if closest_data_index == len(self.data) - 1:
+            rospy.signal_shutdown("finish")
+
         self.pub_scenario.publish(Int16(data=closest_data_index))
+        self.pubConfigReplanner(self.data[closest_data_index].get('speed_limit'))
         self.pubActorTf(self.data[closest_data_index].get('actors'))
         self.pubActorCloud(self.data[closest_data_index].get('actors'))
 
@@ -212,8 +211,6 @@ class PlayCarlaData():
             waypoint.pose.pose.position.y = data.get('waypoint')[1]
             waypoint.pose.pose.position.z = data.get('waypoint')[2]
             waypoint.pose.pose.orientation = self.yawToQuat(data.get('waypoint')[3])
-            # waypoint.twist.twist.linear.x = data.get('waypoint')[4]
-            waypoint.twist.twist.linear.x = data.get('speed_limit')/3.6
             waypoint.gid = 1
             waypoint.wpstate.event_state = 1
             waypoint.lane_id = 1
@@ -223,6 +220,36 @@ class PlayCarlaData():
         self.pub_waypoint.publish(lane_array)
 
 
+    def configReplannerCb(self, msg):
+        self.config_replanner = msg
+
+
+    def pubConfigReplanner(self, max_speed):
+        if self.config_replanner is not None and self.config_replanner.velocity_max == max_speed:
+            return
+
+        config = ConfigWaypointReplanner()
+        config.replanning_mode=True
+        config.realtime_tuning_mode=True
+        config.resample_mode=True
+        config.resample_interval=1
+        config.replan_curve_mode=True
+        config.overwrite_vmax_mode=True
+        config.replan_endpoint_mode=False
+        config.velocity_max = max_speed
+        config.velocity_min = 5.0
+        config.radius_thresh=50
+        config.radius_min= 40
+        config.accel_limit=0.3
+        config.decel_limit=0.3
+        config.velocity_offset=4
+        config.braking_distance=5
+        config.end_point_offset=0
+        config.use_decision_maker=False
+        self.config_replanner = config
+        self.pub_config_replanner.publish(config)
+
+
     def init_pose(self, data):
 
         waypoint = data.get('waypoint')
@@ -230,7 +257,6 @@ class PlayCarlaData():
         pose = waypoint[0:3] + [quat.x, quat.y, quat.z, quat.w]
         command = ['bash', 'set_initialpose.sh'] + [str(i) for i in pose]
         subprocess.call(command)
-        print(command)
 
 
 if __name__ == '__main__':

@@ -43,24 +43,22 @@ class AutoIntervention():
 
     def twistCb(self, msg):
 
-        if not self.intervention:
-            return
-
         intervention_thres = 5.0 / 3.6
         carla_speed = self.data[self.current_data_index].get('waypoint')[4]
         autoware_speed = msg.twist_cmd.twist.linear.x
         out_twist = VehicleCmd()
-        if carla_speed - intervention_thres < autoware_speed < carla_speed + intervention_thres:
+        if (autoware_speed > carla_speed + intervention_thres) or (autoware_speed < 10.0/3.6) and self.intervention:
+        # if carla_speed - intervention_thres < autoware_speed < carla_speed + intervention_thres:
             out_twist = msg
-            # out_twist.twist_cmd.twist.linear.x = msg
-            self.pub_intervention.publish(Bool(data=False))
+            out_twist.twist_cmd.twist.linear.x = carla_speed
+            out_twist.twist_cmd.twist.angular.z *= 2 * carla_speed / autoware_speed
+            self.pub_intervention.publish(Bool(data=True))
+            print(self.data[self.current_data_index].get('speed_limit'), carla_speed, autoware_speed, 'true')
         else:
             out_twist = msg
-            # out_twist.twist_cmd.twist.linear.x = carla_speed
-            # out_twist.ctrl_cmd.linear_velocity = carla_speed
-            self.pub_intervention.publish(Bool(data=True))
+            self.pub_intervention.publish(Bool(data=False))
+            print(self.data[self.current_data_index].get('speed_limit'), carla_speed, autoware_speed, 'false')
 
-        print(carla_speed, autoware_speed)
 
         self.pub_twist.publish(out_twist)
 

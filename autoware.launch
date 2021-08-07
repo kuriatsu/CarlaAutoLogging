@@ -6,17 +6,38 @@
     <!-- ego_vehicle/lidar to velodyne tf -->
     <node pkg="tf"  type="static_transform_publisher" name="lidar_to_base_link" args="1.2 0 2.0 0 0 0 /base_link /velodyne 10" />
 
-    <!-- <include file="$(find autoware_connector)/launch/vel_pose_connect.launch">
+    <include file="$(find autoware_connector)/launch/vel_pose_connect.launch">
         <arg name="topic_pose_stamped" value="/ndt_pose"/>
         <arg name="topic_twist_stamped" value="/estimate_twist"/>
-        <arg name="sim_mode" value="true"/>
-    </include> -->
+        <arg name="sim_mode" value="false"/>
+    </include>
 
     <include file="$(find lane_planner)/launch/lane_rule_option.launch">
     </include>
     <include file="$(find lane_planner)/launch/lane_select.launch">
         <arg name="search_closest_waypoint_minimum_dt" value="5"/>
     </include>
+
+    <include file="$(find waypoint_maker)/launch/waypoint_loader.launch">
+        <arg name="load_csv" value="false"/>
+        <arg name="replanning_mode" value="true"/>
+        <arg name="realtime_tuning_mode" value="true"/>
+        <arg name="resample_mode" value="true"/>
+        <arg name="resample_interval" value="1"/>
+        <arg name="replan_curve_mode" value="true"/>
+        <arg name="overwrite_vmax_mode" value="true"/>
+        <arg name="replan_endpoint_mode" value="false"/>
+        <arg name="velocity_max" value="50"/>
+        <arg name="radius_thresh" value="50"/>
+        <arg name="radius_min" value="6"/>
+        <arg name="accel_limit" value="0.3"/>
+        <arg name="decel_limit" value="0.3"/>
+        <arg name="velocity_offset" value="4"/>
+        <arg name="braking_distance" value="5"/>
+        <arg name="end_point_offset" value="0"/>
+        <arg name="use_decision_maker" value="false"/>
+    </include>
+
 
     <include file="$(find waypoint_planner)/launch/astar_avoid.launch">
         <arg name="enable_avoidance" value="false"/>
@@ -25,6 +46,7 @@
         <arg name="points_topic" value="points_no_ground"/>
         <arg name="use_ll2" value="false"/>
     </include>
+
     <node pkg="rostopic" type="rostopic" name="velocity_set_config" args="pub /config/velocity_set autoware_config_msgs/ConfigVelocitySet
         '{header: {seq: 0, stamp: {secs: 0, nsecs: 0}, frame_id: ''},
         stop_distance_obstacle: 10.0,
@@ -38,34 +60,30 @@
         velocity_change_limit: 7.0,
         deceleration_range: 2.0,
         temporal_waypoints_size: 100.0
-        }' -1 " output="screen"
+        }' -l " output="screen"
         />
-<!--
+
     <include file="$(find pure_pursuit)/launch/pure_pursuit.launch">
         <arg name="is_linear_interpolation" value="true"/>
         <arg name="publishes_for_steering_robot" value="false"/>
         <arg name="add_virtual_end_waypoints" value="false"/>
-    </include> -->
+    </include>
+
     <node pkg="rostopic" type="rostopic" name="pure_pursuit_config" args="pub /config/waypoint_follower autoware_config_msgs/ConfigWaypointFollower
         '{header: {seq: 0, stamp: {secs: 0, nsecs: 0}, frame_id: ''},
         param_flag: 0,
-        velocity: 5.0,
+        velocity: 0.0,
         lookahead_distance: 2.0,
-        lookahead_ratio: 1.0,
-        minimum_lookahead_distance: 1.0,
+        lookahead_ratio: 1.5,
+        minimum_lookahead_distance: 2.0,
         displacement_threshold: 0.0,
         relative_angle_threshold: 0.0
-        }' -1" output="screen"
+        }' -l" output="screen"
         />
-
-        <!-- <include file="$(find twist_filter)/launch/twist_filter.launch">
-        <arg name="use_decision_maker" value="false"/>
-        <remap from="/vehicle_cmd" to="/vehicle_cmd_autoware"/>
-    </include> -->
 
     <!-- rosrun waypoint_follower twist_filter -->
     <node pkg="twist_filter" type="twist_filter" name="twist_filter" output="log">
-        <param name="lateral_accel_limit" value="1.5" />
+        <param name="lateral_accel_limit" value="0.3" />
         <param name="lowpass_gain_linear_x" value="0.0" />
         <param name="lowpass_gain_angular_z" value="0.0" />
     </node>
