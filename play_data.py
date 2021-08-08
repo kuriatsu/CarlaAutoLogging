@@ -48,9 +48,83 @@ class PlayCarlaData():
         self.timer = rospy.Timer(rospy.Duration(0.1), self.timerCb)
 
 
-    def yawToQuat(self, yaw):
-        quat = tf.transformations.quaternion_from_euler(0.0, 0.0, np.radians(yaw))
-        return Quaternion(x=quat[0], y=quat[1], z=quat[2], w=quat[3])
+    def init_pose(self, data):
+
+        waypoint = data.get('waypoint')
+        quat = self.yawToQuat(waypoint[3])
+        pose = waypoint[0:3] + [quat.x, quat.y, quat.z, quat.w]
+        command = ['bash', 'set_initialpose.sh'] + [str(i) for i in pose]
+        subprocess.call(command)
+
+
+    def setWaypoint(self, data_list):
+        lane_array = LaneArray()
+        lane = Lane()
+        lane.header.stamp = rospy.Time.now()
+        lane.header.frame_id = 'map'
+        lane.lane_id = 1
+        for data in data_list:
+            waypoint = Waypoint()
+            waypoint.pose.pose.position.x = data.get('waypoint')[0]
+            waypoint.pose.pose.position.y = data.get('waypoint')[1]
+            waypoint.pose.pose.position.z = data.get('waypoint')[2]
+            waypoint.pose.pose.orientation = self.yawToQuat(data.get('waypoint')[3])
+            waypoint.gid = 1
+            waypoint.wpstate.event_state = 1
+            waypoint.lane_id = 1
+            lane.waypoints.append(waypoint)
+
+        lane_array.lanes.append(lane)
+        self.pub_waypoint.publish(lane_array)
+
+
+    def timerCb(self, event):
+        if self.current_pose is None:
+            return
+
+        min_dist = 1000000
+        closest_data_index = None
+        for i, data in enumerate(self.data):
+            waypoint = data.get('waypoint')
+            position = self.current_pose.position
+            dist = (position.x - waypoint[0]) ** 2 + (position.y - waypoint[1]) ** 2
+            if min_dist > dist:
+                min_dist = dist
+                closest_data_index = i
+
+        if closest_data_index == len(self.data) - 1:
+            rospy.signal_shutdown("finish")
+
+        self.pub_scenario.publish(Int16(data=closest_data_index))
+        self.pubConfigReplanner(self.data[closest_data_index].get('speed_limit'))
+        self.pubActorTf(self.data[closest_data_index].get('actors'))
+        self.pubActorCloud(self.data[closest_data_index].get('actors'))
+
+
+    def pubConfigReplanner(self, max_speed):
+        if self.config_replanner is not None and self.config_replanner.velocity_max == max_speed:
+            return
+
+        config = ConfigWaypointReplanner()
+        config.replanning_mode=True
+        config.realtime_tuning_mode=True
+        config.resample_mode=True
+        config.resample_interval=1
+        config.replan_curve_mode=True
+        config.overwrite_vmax_mode=True
+        config.replan_endpoint_mode=False
+        config.velocity_max = max_speed
+        config.velocity_min = 5.0
+        config.radius_thresh=50
+        config.radius_min= 40
+        config.accel_limit=0.3
+        config.decel_limit=0.3
+        config.velocity_offset=4
+        config.braking_distance=5
+        config.end_point_offset=0
+        config.use_decision_maker=False
+        self.config_replanner = config
+        self.pub_config_replanner.publish(config)
 
 
     def pubActorTf(self, actors):
@@ -176,87 +250,15 @@ class PlayCarlaData():
         self.current_pose = msg.pose
 
 
-    def timerCb(self, event):
-        if self.current_pose is None:
-            return
-
-        min_dist = 1000000
-        closest_data_index = None
-        for i, data in enumerate(self.data):
-            waypoint = data.get('waypoint')
-            position = self.current_pose.position
-            dist = (position.x - waypoint[0]) ** 2 + (position.y - waypoint[1]) ** 2
-            if min_dist > dist:
-                min_dist = dist
-                closest_data_index = i
-
-        if closest_data_index == len(self.data) - 1:
-            rospy.signal_shutdown("finish")
-
-        self.pub_scenario.publish(Int16(data=closest_data_index))
-        self.pubConfigReplanner(self.data[closest_data_index].get('speed_limit'))
-        self.pubActorTf(self.data[closest_data_index].get('actors'))
-        self.pubActorCloud(self.data[closest_data_index].get('actors'))
-
-
-    def setWaypoint(self, data_list):
-        lane_array = LaneArray()
-        lane = Lane()
-        lane.header.stamp = rospy.Time.now()
-        lane.header.frame_id = 'map'
-        lane.lane_id = 1
-        for data in data_list:
-            waypoint = Waypoint()
-            waypoint.pose.pose.position.x = data.get('waypoint')[0]
-            waypoint.pose.pose.position.y = data.get('waypoint')[1]
-            waypoint.pose.pose.position.z = data.get('waypoint')[2]
-            waypoint.pose.pose.orientation = self.yawToQuat(data.get('waypoint')[3])
-            waypoint.gid = 1
-            waypoint.wpstate.event_state = 1
-            waypoint.lane_id = 1
-            lane.waypoints.append(waypoint)
-
-        lane_array.lanes.append(lane)
-        self.pub_waypoint.publish(lane_array)
-
-
     def configReplannerCb(self, msg):
         self.config_replanner = msg
 
 
-    def pubConfigReplanner(self, max_speed):
-        if self.config_replanner is not None and self.config_replanner.velocity_max == max_speed:
-            return
-
-        config = ConfigWaypointReplanner()
-        config.replanning_mode=True
-        config.realtime_tuning_mode=True
-        config.resample_mode=True
-        config.resample_interval=1
-        config.replan_curve_mode=True
-        config.overwrite_vmax_mode=True
-        config.replan_endpoint_mode=False
-        config.velocity_max = max_speed
-        config.velocity_min = 5.0
-        config.radius_thresh=50
-        config.radius_min= 40
-        config.accel_limit=0.3
-        config.decel_limit=0.3
-        config.velocity_offset=4
-        config.braking_distance=5
-        config.end_point_offset=0
-        config.use_decision_maker=False
-        self.config_replanner = config
-        self.pub_config_replanner.publish(config)
+    def yawToQuat(self, yaw):
+        quat = tf.transformations.quaternion_from_euler(0.0, 0.0, np.radians(yaw))
+        return Quaternion(x=quat[0], y=quat[1], z=quat[2], w=quat[3])
 
 
-    def init_pose(self, data):
-
-        waypoint = data.get('waypoint')
-        quat = self.yawToQuat(waypoint[3])
-        pose = waypoint[0:3] + [quat.x, quat.y, quat.z, quat.w]
-        command = ['bash', 'set_initialpose.sh'] + [str(i) for i in pose]
-        subprocess.call(command)
 
 
 if __name__ == '__main__':

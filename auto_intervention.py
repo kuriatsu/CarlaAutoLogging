@@ -53,7 +53,7 @@ class AutoIntervention():
             out_twist.twist_cmd.twist.linear.x = carla_speed
             out_twist.twist_cmd.twist.angular.z *= 2 * carla_speed / autoware_speed
             self.pub_intervention.publish(Bool(data=True))
-            print(self.data[self.current_data_index].get('speed_limit'), carla_speed, autoware_speed, 'true')
+            print(self.data[self.current_data_index].get('speed_limit'), carla_speed / autoware_speed, 'true')
         else:
             out_twist = msg
             self.pub_intervention.publish(Bool(data=False))
