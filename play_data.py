@@ -39,8 +39,9 @@ class PlayCarlaData():
         self.pub_scenario = rospy.Publisher('/current_scenario', Int32, queue_size=1)
         self.sub_config_replanner = rospy.Subscriber('/config/waypoint_replanner', ConfigWaypointReplanner, self.configReplannerCb)
         self.sub_current_pose = rospy.Subscriber('/current_pose', PoseStamped, self.currentPoseCb)
+
         self.init_pose(self.data[0])
-        time.sleep(0.1)
+        time.sleep(1.0)
         self.setWaypoint(self.data)
         self.pubActorTf(self.data[0].get('actors'))
         self.pubConfigReplanner(self.data[0].get('speed_limit'))

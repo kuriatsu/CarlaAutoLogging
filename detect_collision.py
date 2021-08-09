@@ -9,9 +9,9 @@ import numny as np
 
 class DetectCollision():
 
-    def __init__(self, data_file):
-        with open(data_file, 'rb') as f:
-            self.data = pickle.load(f)
+    def __init__(self):
+        # with open(data_file, 'rb') as f:
+        #     self.data = pickle.load(f)
 
         self.current_data_index = 0
         self.current_pose = None
@@ -73,5 +73,6 @@ class DetectCollision():
 
 if __name__ == '__main__':
     rospy.init_node('detect_collision_node')
-    save_ros_data = DetectCollision(argv[1])
+    # save_ros_data = DetectCollision(argv[1])
+    save_ros_data = DetectCollision()
     rospy.spin()
