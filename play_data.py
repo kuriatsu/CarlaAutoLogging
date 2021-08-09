@@ -8,7 +8,7 @@ import sys
 import numpy as np
 import subprocess
 
-from std_msgs.msg import Header, Int16
+from std_msgs.msg import Header, Int32
 from autoware_msgs.msg import Waypoint, LaneArray, Lane, DetectedObjectArray, DetectedObject
 from autoware_config_msgs.msg import ConfigWaypointReplanner
 from geometry_msgs.msg import PoseStamped, Point, Quaternion, PointStamped, PoseWithCovarianceStamped, PolygonStamped, Polygon, Pose
@@ -27,24 +27,23 @@ class PlayCarlaData():
 
         self.tf_broadcaster = tf.TransformBroadcaster()
         self.tf_listener = tf.TransformListener()
-        self.current_data_index = 0
         self.current_pose = None
         self.config_replanner = None
+        self.closest_waypoint = 0
 
         self.pub_cloud = rospy.Publisher('/points_no_ground', PointCloud2, queue_size=5)
         self.pub_object = rospy.Publisher('/detection/contour_tracker/objects', DetectedObjectArray, queue_size=5)
         self.pub_initial_pose = rospy.Publisher('/initialpose', PoseWithCovarianceStamped, queue_size=5)
         self.pub_waypoint = rospy.Publisher('/based/lane_waypoints_raw', LaneArray, queue_size=1, latch=True)
         self.pub_config_replanner = rospy.Publisher('/config/waypoint_replanner', ConfigWaypointReplanner, queue_size=1)
-        self.pub_scenario = rospy.Publisher('/current_scenario', Int16, queue_size=1)
+        self.pub_scenario = rospy.Publisher('/current_scenario', Int32, queue_size=1)
         self.sub_config_replanner = rospy.Subscriber('/config/waypoint_replanner', ConfigWaypointReplanner, self.configReplannerCb)
         self.sub_current_pose = rospy.Subscriber('/current_pose', PoseStamped, self.currentPoseCb)
-
         self.init_pose(self.data[0])
+        time.sleep(0.1)
         self.setWaypoint(self.data)
         self.pubActorTf(self.data[0].get('actors'))
         self.pubConfigReplanner(self.data[0].get('speed_limit'))
-        time.sleep(0.1)
         self.timer = rospy.Timer(rospy.Duration(0.1), self.timerCb)
 
 
@@ -92,10 +91,10 @@ class PlayCarlaData():
                 min_dist = dist
                 closest_data_index = i
 
-        if closest_data_index == len(self.data) - 1:
+        if closest_data_index > len(self.data) - 3:
             rospy.signal_shutdown("finish")
 
-        self.pub_scenario.publish(Int16(data=closest_data_index))
+        self.pub_scenario.publish(Int32(data=closest_data_index))
         self.pubConfigReplanner(self.data[closest_data_index].get('speed_limit'))
         self.pubActorTf(self.data[closest_data_index].get('actors'))
         self.pubActorCloud(self.data[closest_data_index].get('actors'))
@@ -114,15 +113,15 @@ class PlayCarlaData():
         config.overwrite_vmax_mode=True
         config.replan_endpoint_mode=False
         config.velocity_max = max_speed
-        config.velocity_min = 5.0
-        config.radius_thresh=50
-        config.radius_min= 40
-        config.accel_limit=0.3
-        config.decel_limit=0.3
-        config.velocity_offset=4
-        config.braking_distance=5
-        config.end_point_offset=0
-        config.use_decision_maker=False
+        config.velocity_min = 8.0
+        config.radius_thresh= 50
+        config.radius_min= 10.0
+        config.accel_limit= 0.3
+        config.decel_limit= 0.3
+        config.velocity_offset= 0
+        config.braking_distance= 5
+        config.end_point_offset= 0
+        config.use_decision_maker= False
         self.config_replanner = config
         self.pub_config_replanner.publish(config)
 
