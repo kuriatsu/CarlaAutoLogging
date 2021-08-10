@@ -8,7 +8,7 @@ import sys
 import numpy as np
 import subprocess
 
-from std_msgs.msg import Header, Int32
+from std_msgs.msg import Header, Int32, Float32
 from autoware_msgs.msg import Waypoint, LaneArray, Lane, DetectedObjectArray, DetectedObject
 from autoware_config_msgs.msg import ConfigWaypointReplanner
 from geometry_msgs.msg import PoseStamped, Point, Quaternion, PointStamped, PoseWithCovarianceStamped, PolygonStamped, Polygon, Pose
@@ -37,19 +37,23 @@ class PlayCarlaData():
         self.pub_waypoint = rospy.Publisher('/based/lane_waypoints_raw', LaneArray, queue_size=1, latch=True)
         self.pub_config_replanner = rospy.Publisher('/config/waypoint_replanner', ConfigWaypointReplanner, queue_size=1)
         self.pub_scenario = rospy.Publisher('/current_scenario', Int32, queue_size=1)
+        self.pub_carla_speed = rospy.Publisher('/vehicle_speed_carla', Float32, queue_size=1)
+        self.pub_vehicle_size = rospy.Publisher('/ego_vehicle/size', Point, queue_size=1, latch=True)
         self.sub_config_replanner = rospy.Subscriber('/config/waypoint_replanner', ConfigWaypointReplanner, self.configReplannerCb)
         self.sub_current_pose = rospy.Subscriber('/current_pose', PoseStamped, self.currentPoseCb)
 
+        print('initialize')
         self.init_pose(self.data[0])
         time.sleep(1.0)
         self.setWaypoint(self.data)
+        self.pub_vehicle_size.publish(Point(x=self.data[0].get('size')[0], y=self.data[0].get('size')[1], z=self.data[0].get('size')[2]))
         self.pubActorTf(self.data[0].get('actors'))
         self.pubConfigReplanner(self.data[0].get('speed_limit'))
         self.timer = rospy.Timer(rospy.Duration(0.1), self.timerCb)
 
 
     def init_pose(self, data):
-
+        print('initialpose')
         waypoint = data.get('waypoint')
         quat = self.yawToQuat(waypoint[3])
         pose = waypoint[0:3] + [quat.x, quat.y, quat.z, quat.w]
@@ -58,6 +62,7 @@ class PlayCarlaData():
 
 
     def setWaypoint(self, data_list):
+        print('set waypoint')
         lane_array = LaneArray()
         lane = Lane()
         lane.header.stamp = rospy.Time.now()
@@ -80,6 +85,7 @@ class PlayCarlaData():
 
     def timerCb(self, event):
         if self.current_pose is None:
+            print('failed to get current_pose')
             return
 
         min_dist = 1000000
@@ -92,10 +98,14 @@ class PlayCarlaData():
                 min_dist = dist
                 closest_data_index = i
 
-        if closest_data_index > len(self.data) - 3:
+        sys.stdout.write('\r' + str(closest_data_index) + '/' + str(len(self.data)))
+        sys.stdout.flush()
+
+        if closest_data_index > len(self.data) - 8:
             rospy.signal_shutdown("finish")
 
         self.pub_scenario.publish(Int32(data=closest_data_index))
+        self.pub_carla_speed.publish(Float32(data=self.data[closest_data_index].get('waypoint')[4]))
         self.pubConfigReplanner(self.data[closest_data_index].get('speed_limit'))
         self.pubActorTf(self.data[closest_data_index].get('actors'))
         self.pubActorCloud(self.data[closest_data_index].get('actors'))
@@ -117,8 +127,8 @@ class PlayCarlaData():
         config.velocity_min = 8.0
         config.radius_thresh= 50
         config.radius_min= 10.0
-        config.accel_limit= 0.3
-        config.decel_limit= 0.3
+        config.accel_limit= 0.5
+        config.decel_limit= 0.5
         config.velocity_offset= 0
         config.braking_distance= 5
         config.end_point_offset= 0
@@ -170,6 +180,7 @@ class PlayCarlaData():
         try:
             transform, quaternion = self.tf_listener.lookupTransform(target_frame, source_frame, rospy.Time(0))
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+            print('failed to get tf')
             return
 
         source_matrix = tf.transformations.quaternion_matrix([0,0,0,0])

@@ -52,9 +52,9 @@ def main():
         tm.vehicle_percentage_speed_difference(ego_vehicle, 0)
         tm.ignore_lights_percentage(ego_vehicle, 100)
 
-        log_file = '/home/kuriatsu/Source/CarlaAutoLogging/test_{}.log'.format(str(i))
-        client.start_recorder(log_file)
-        waypoint_file = '/home/kuriatsu/Source/CarlaAutoLogging/test_{}.csv'.format(str(i))
+        # log_file = '/home/kuriatsu/Source/CarlaAutoLogging/carla_data/test_{}.log'.format(str(i))
+        # client.start_recorder(log_file)
+        # waypoint_file = '/home/kuriatsu/Source/CarlaAutoLogging/carla_data/test_{}.csv'.format(str(i))
 
         print(log_file, waypoint_file)
 
@@ -94,12 +94,12 @@ def main():
             world.wait_for_tick()
 
         client.apply_batch([carla.command.DestroyActor(ego_vehicle.id)])
-        client.stop_recorder()
+        # client.stop_recorder()
 
-        with open(waypoint_file, 'w') as f:
-            writer = csv.writer(f)
-            writer.writerow(['x', 'y', 'z', 'yaw', 'velocity', 'change_flag'])
-            writer.writerows(waypoint)
+        # with open(waypoint_file, 'w') as f:
+        #     writer = csv.writer(f)
+        #     writer.writerow(['x', 'y', 'z', 'yaw', 'velocity', 'change_flag'])
+        #     writer.writerows(waypoint)
 
 if __name__ == "__main__":
 

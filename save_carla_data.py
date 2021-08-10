@@ -22,34 +22,59 @@ def createEgoBlueprint(world, role_name):
     return blueprint
 
 
-def setupTrafficManager(client, tm):
+def setupTrafficManager(client, world):
+
+    tm_get = False
+    while not tm_get:
+        try:
+            tm = client.get_trafficmanager(8000)
+            tm_get = True
+        except:
+            tm_get = False
 
     for actor in client.get_world().get_actors():
         if actor.attributes.get('number_of_wheels') in ['2', '4']:
             tm.vehicle_percentage_speed_difference(actor, 0)
+            tm.vehicle_percentage_speed_difference(actor, 0)
+            tm.ignore_lights_percentage(actor, 100)
             tm.ignore_lights_percentage(actor, 100)
 
+    print('set traffic manager')
 
-def spawnEgoVehicle(client, world, tm, blueprint):
+
+def spawnEgoVehicle(client, world, blueprint):
 
     spawn_points = world.get_map().get_spawn_points()
     transform = random.choice(spawn_points)
     batch = [carla.command.SpawnActor(blueprint, transform).then(carla.command.SetAutopilot(carla.command.FutureActor, True))]
 
     ego_vehicle = None
-    for response in client.apply_batch_sync(batch):
-        if response.error:
-            logging.error(response.error)
-        else:
-            actor = world.get_actor(response.actor_id)
-            if actor.attributes.get('role_name') == 'ego_vehicle':
-                ego_vehicle = actor
+    while ego_vehicle is None:
+        for response in client.apply_batch_sync(batch):
+            if response.error:
+                logging.error(response.error)
+            else:
+                actor = world.get_actor(response.actor_id)
+                if actor.attributes.get('role_name') == 'ego_vehicle':
+                    ego_vehicle = actor
 
     world.wait_for_tick()
     ego_vehicle.set_autopilot(True)
+    print('set autopilot')
+
+    tm_get = False
+    while not tm_get:
+        try:
+            tm = client.get_trafficmanager(8000)
+            tm_get = True
+        except:
+            tm_get = False
 
     tm.vehicle_percentage_speed_difference(ego_vehicle, 0)
+    tm.vehicle_percentage_speed_difference(ego_vehicle, 0)
     tm.ignore_lights_percentage(ego_vehicle, 100)
+    tm.ignore_lights_percentage(ego_vehicle, 100)
+    print('set ego_vehicle traffic manager')
 
     return ego_vehicle
 
@@ -122,26 +147,36 @@ def drive_loop(world, actor_list, ego_vehicle, dist_step_data, time_step_data):
         save_step_time += world.get_snapshot().timestamp.delta_seconds
 
         if wp_step_length > wp_interval:
+
             data = {
                 'waypoint' : getWp(ego_vehicle),
                 'speed_limit' : ego_vehicle.get_speed_limit(),
                 # 'traffic_light' : ego_vehicle.get_traffic_light_state(),
                 'actors' : getDistStepActorData(actor_list),
                 }
+
+            if len(dist_step_data) == 0:
+                data['type'] = ego_vehicle.type_id
+                data['size'] = carlaVectorToList(ego_vehicle.bounding_box.extent)
+
             dist_step_data.append(data)
             wp_step_length = 0.0
 
         if save_step_time > save_interval:
             data = {
                 'time' : world.get_snapshot().timestamp.elapsed_seconds,
-                'actors' : getTimeStepActorData(world, ego_vehicle, actor_list)
+                'mileage' : len(dist_step_data) * wp_interval,
+                'actors' : getTimeStepActorData(world, ego_vehicle, actor_list),
+                'intervention' : None,
+                'collision' : None,
                 }
             time_step_data.append(data)
             save_step_time = 0.0
 
         data_length = len(time_step_data) * save_interval
         travel_dist = len(dist_step_data) * wp_interval
-        print(travel_dist)
+        sys.stdout.write('\r' + str(travel_dist))
+        sys.stdout.flush()
 
         if data_length > 30:
             if travel_dist < 20:
@@ -160,7 +195,6 @@ def main():
     client = carla.Client('127.0.0.1', 2000)
     client.set_timeout(10.0)
     world = client.get_world()
-    tm = client.get_trafficmanager(8000)
 
     ego_blueprint = createEgoBlueprint(world, 'ego_vehicle')
 
@@ -171,13 +205,13 @@ def main():
         elif actor.type_id.startswith('walker') or actor.type_id.startswith('vehicle'):
             actor_list.append(actor)
 
-    setupTrafficManager(client, tm)
+    setupTrafficManager(client, world)
 
     for i in range(1, int(sys.argv[2])):
         log_name = sys.argv[1]
-        log_file = '/home/kuriatsu/Source/CarlaAutoLogging/logged_data/{}_{}.log'.format(log_name, str(i))
-        dist_step_file = '/home/kuriatsu/Source/CarlaAutoLogging/logged_data/{}_{}_dist.pickle'.format(log_name, str(i))
-        time_step_file = '/home/kuriatsu/Source/CarlaAutoLogging/logged_data/{}_{}_time.pickle'.format(log_name, str(i))
+        log_file = '/home/kuriatsu/Source/CarlaAutoLogging/carla_data/{}_{}.log'.format(log_name, str(i))
+        dist_step_file = '/home/kuriatsu/Source/CarlaAutoLogging/carla_data/{}_{}_dist.pickle'.format(log_name, str(i))
+        time_step_file = '/home/kuriatsu/Source/CarlaAutoLogging/carla_data/{}_{}_time.pickle'.format(log_name, str(i))
 
         print(log_file)
 
@@ -187,7 +221,7 @@ def main():
 
         ego_vehicle = None
         while ego_vehicle is None:
-            ego_vehicle = spawnEgoVehicle(client, world, tm, ego_blueprint)
+            ego_vehicle = spawnEgoVehicle(client, world, ego_blueprint)
 
         dist_step_data = []
         time_step_data = []
