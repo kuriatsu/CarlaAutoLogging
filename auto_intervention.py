@@ -81,11 +81,11 @@ class AutoIntervention():
                 self.pub_intervention.publish(Bool(data=False))
 
         else:
-            if autoware_speed == 0.0 and carla_speed == 0.0:
+            if autoware_speed == 0.0:
                 print('avoid stop')
                 out_twist.twist_cmd.twist.linear.x = avoid_stop_vel
                 self.pub_intervention.publish(Bool(data=False))
-                
+
             self.pub_intervention.publish(Bool(data=False))
 
         sys.stdout.write('\r' + str(out_twist.twist_cmd.twist.angular.z) + ' : ' + str(autoware_speed) + ' : ' + str(carla_speed))

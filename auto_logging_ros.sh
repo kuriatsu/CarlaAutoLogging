@@ -3,13 +3,14 @@
 file_list="/home/kuriatsu/Source/CarlaAutoLogging/carla_data/*dist.pickle"
 out_path="/home/kuriatsu/Source/CarlaAutoLogging/ros_data/"
 
+intervention_list=("no_int" "int")
 # source /home/kuriatsu/Source/autoware-1.13/install/setup.bash
 # roslaunch autoware.launch &
 # autoware_ps=$!
 
 for read_file in ${file_list[@]}; do
 
-    for mode in ("no_int" "int"); do
+    for mode in ${intervention_list[@]}; do
         buf=${read_file##*/}
         out_file_name=${buf%dist.pickle}
         out_file=$out_path$out_file_name"_"$mode".pickle"
@@ -18,11 +19,6 @@ for read_file in ${file_list[@]}; do
 
         python detect_collision.py &
         collision_ps=$!
-
-        python play_data.py $read_file &
-        play_data_ps=$!
-
-        sleep 1.0
 
         if [ $mode = "int" ]; then
             is_intervention=1
@@ -33,6 +29,8 @@ for read_file in ${file_list[@]}; do
         python auto_intervention.py $is_intervention &
         intervention_ps=$!
 
+        python play_data.py $read_file &
+        play_data_ps=$!
 
         python save_ros_data.py $read_file $out_file &
         save_data_ps=$!
