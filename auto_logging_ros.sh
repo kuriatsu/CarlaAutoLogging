@@ -13,7 +13,7 @@ for read_file in ${file_list[@]}; do
     for mode in ${intervention_list[@]}; do
         buf=${read_file##*/}
         out_file_name=${buf%dist.pickle}
-        out_file=$out_path$out_file_name"_"$mode".pickle"
+        out_file=$out_path$out_file_name$mode".pickle"
 
         echo $out_file
 
