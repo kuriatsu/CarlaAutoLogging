@@ -209,9 +209,9 @@ def main():
 
     for i in range(1, int(sys.argv[2])):
         log_name = sys.argv[1]
-        log_file = '/home/kuriatsu/Source/CarlaAutoLogging/carla_data/{}_{}.log'.format(log_name, str(i))
-        dist_step_file = '/home/kuriatsu/Source/CarlaAutoLogging/carla_data/{}_{}_dist.pickle'.format(log_name, str(i))
-        time_step_file = '/home/kuriatsu/Source/CarlaAutoLogging/carla_data/{}_{}_time.pickle'.format(log_name, str(i))
+        log_file = '{}_{}.log'.format(log_name, str(i))
+        dist_step_file = '{}_{}_dist.pickle'.format(log_name, str(i))
+        time_step_file = '{}_{}_time.pickle'.format(log_name, str(i))
 
         print(log_file)
 

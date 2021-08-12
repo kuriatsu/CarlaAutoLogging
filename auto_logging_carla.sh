@@ -1,27 +1,27 @@
 #!/bin/bash
-
+save_dir="/media/kuriatsu/Samsung_TC2019/carla_drive_data"
 play_list=(
-	"Town01,town01_vacant,20,40,10"
-	"Town01,town01_crowd,40,80,10"
-	"Town02,town02_vacant,20,40,10"
-	"Town02,town02_crowd,40,80,10"
-	"Town03,town03_vacant,40,80,10"
-	"Town03,town03_crowd,60,100,10"
-	"Town04,town04_vacant,40,60,10"
-	"Town04,town04_crowd,60,100,10"
-	"Town05,town05_vacant,20,40,10"
-	"Town05,town05_crowd,40,80,10"
-	"Town06,town06_vacant,20,40,10"
-	"Town06,town06_crowd,40,80,10"
-	"Town07,town07_vacant,20,40,10"
-	"Town07,town07_crowd,40,80,10"
+	"Town01,town01_vacant,20,60,200"
+	"Town01,town01_crowd,40,100,200"
+	"Town02,town02_vacant,20,60,200"
+	"Town02,town02_crowd,40,100,200"
+	"Town03,town03_vacant,60,80,200"
+	"Town03,town03_crowd,100,120,200"
+	"Town04,town04_vacant,60,80,200"
+	"Town04,town04_crowd,100,120,200"
+	"Town05,town05_vacant,60,80,200"
+	"Town05,town05_crowd,100,120,200"
+	"Town06,town06_vacant,60,80,200"
+	"Town06,town06_crowd,100,120,200"
+	"Town07,town07_vacant,20,60,200"
+	"Town07,town07_crowd,40,100,200"
 	)
 
 # play rosbag & start aidi
 for play_data in ${play_list[@]}; do
 
 	map=$(echo $play_data | awk -F '[,]' '{print $1}')
-	log_name=$(echo $play_data | awk -F '[,]' '{print $2}')
+    file_name=$(echo $play_data | awk -F '[,]' '{print $2}')
 	vehicle=$(echo $play_data | awk -F '[,]' '{print $3}')
 	walker=$(echo $play_data | awk -F '[,]' '{print $4}')
 	itr=$(echo $play_data | awk -F '[,]' '{print $5}')
@@ -34,7 +34,7 @@ for play_data in ${play_list[@]}; do
     spawn_np_ps=$!
     sleep 1
     echo start logging
-    python save_carla_data.py $log_name $itr
+    python save_carla_data.py $save_dir/$file_name $itr
     kill -2 $spawn_np_ps
 
 done
