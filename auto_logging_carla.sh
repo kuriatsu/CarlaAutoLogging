@@ -24,7 +24,7 @@ for play_data in ${play_list[@]}; do
     file_name=$(echo $play_data | awk -F '[,]' '{print $2}')
 	vehicle=$(echo $play_data | awk -F '[,]' '{print $3}')
 	walker=$(echo $play_data | awk -F '[,]' '{print $4}')
-	itr=$(echo $play_data | awk -F '[,]' '{print $6}')
+	itr=$(echo $play_data | awk -F '[,]' '{print $5}')
     echo map=$map itr=$itr
 
     out_num=0
@@ -39,8 +39,8 @@ for play_data in ${play_list[@]}; do
         echo start logging
         python save_carla_data.py $save_dir/$file_name $start $itr
         kill -2 $spawn_np_ps
-        out_num=$(find $save_dir -name "*$file_name*" | wc -l)
-    done        
+        out_num=$(find $save_dir -name "*$file_name*.pickle" | wc -l)
+    done
 
 
 done

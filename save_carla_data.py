@@ -85,52 +85,34 @@ def carlaVectorToList(vector):
 
 def getWp(actor):
     trans = actor.get_transform()
-    vel = actor.get_velocity()
-    speed = (vel.x ** 2 + vel.y ** 2) ** 0.5
-    wp = [trans.location.x, -trans.location.y, trans.location.z, -trans.rotation.yaw, speed, 0]
+    wp = [trans.location.x, -trans.location.y, trans.location.z, -trans.rotation.yaw, actor.get_speed_limit(), 0]
     return wp
 
 
-def getDistStepActorData(actor_list):
-    data = {}
-    for actor in actor_list:
-        data[actor.id] = {
-            'type' : actor.type_id,
-            'waypoint' : getWp(actor),
-            'size': carlaVectorToList(actor.bounding_box.extent),
-            }
-
-    return data
-
-
-def getTimeStepActorData(world, ego_vehicle, actor_list):
-
-    data = {}
-    trans = ego_vehicle.get_transform()
-    vel = ego_vehicle.get_velocity()
-    data['ego_vehicle'] = {
-        'type' : ego_vehicle.type_id,
+def getActorData(actor):
+    trans = actor.get_transform()
+    vel = actor.get_velocity()
+    data = {
+        'type' : actor.type_id,
         'pose' : [trans.location.x, -trans.location.y, trans.location.z, -trans.rotation.yaw],
         'speed' : (vel.x ** 2 + vel.y ** 2) ** 0.5,
-        'size': carlaVectorToList(ego_vehicle.bounding_box.extent),
-        'speed_limit' : ego_vehicle.get_speed_limit(),
+        'size': carlaVectorToList(actor.bounding_box.extent),
         }
+    return data
+
+
+def getActorListData(ego_vehicle, actor_list):
+
+    data = {}
+    data['ego_vehicle'] = getActorData(ego_vehicle)
 
     for actor in actor_list:
-        trans = actor.get_transform()
-        vel = actor.get_velocity()
-        data[actor.id] = {
-            'type' : actor.type_id,
-            'pose' : [trans.location.x, -trans.location.y, trans.location.z, -trans.rotation.yaw],
-            'speed' : (vel.x ** 2 + vel.y ** 2) ** 0.5,
-            'size': carlaVectorToList(actor.bounding_box.extent),
-            # 'speed_limit' : actor.get_speed_limit(),
-            }
+        data[actor.id] = getActorData(actor)
 
     return data
 
 
-def drive_loop(world, actor_list, ego_vehicle, dist_step_data, time_step_data):
+def driveLoop(world, actor_list, ego_vehicle, dist_step_data, time_step_data, waypoint):
 
     wp_step_length = 0.0
     wp_interval = 0.5
@@ -148,17 +130,14 @@ def drive_loop(world, actor_list, ego_vehicle, dist_step_data, time_step_data):
         save_step_time += world.get_snapshot().timestamp.delta_seconds
 
         if wp_step_length > wp_interval:
+            waypoint.append(getWp(ego_vehicle))
 
             data = {
-                'waypoint' : getWp(ego_vehicle),
-                'speed_limit' : ego_vehicle.get_speed_limit(),
-                # 'traffic_light' : ego_vehicle.get_traffic_light_state(),
-                'actors' : getDistStepActorData(actor_list),
+                'trigger' : getWp(ego_vehicle),
+                'actors' : getActorListData(ego_vehicle, actor_list),
+                'intervention' : None,
+                'collision' : None,
                 }
-
-            if len(dist_step_data) == 0:
-                data['type'] = ego_vehicle.type_id
-                data['size'] = carlaVectorToList(ego_vehicle.bounding_box.extent)
 
             dist_step_data.append(data)
             wp_step_length = 0.0
@@ -166,20 +145,20 @@ def drive_loop(world, actor_list, ego_vehicle, dist_step_data, time_step_data):
         if save_step_time > save_interval:
             data = {
                 'time' : world.get_snapshot().timestamp.elapsed_seconds,
-                'mileage' : len(dist_step_data) * wp_interval,
-                'actors' : getTimeStepActorData(world, ego_vehicle, actor_list),
+                'actors' : getActorListData(ego_vehicle, actor_list),
                 'intervention' : None,
                 'collision' : None,
                 }
+
             time_step_data.append(data)
             save_step_time = 0.0
 
-        data_length = len(time_step_data) * save_interval
+        recoad_time = len(time_step_data) * save_interval
         travel_dist = len(dist_step_data) * wp_interval
         sys.stdout.write('\r' + str(travel_dist))
         sys.stdout.flush()
 
-        if data_length > 30:
+        if recoad_time > 30:
             if travel_dist < 20:
                 print('travel distance is less than 20m in 30sec -> exit')
                 exit()
@@ -226,20 +205,17 @@ def main():
 
         dist_step_data = []
         time_step_data = []
+        waypoint = []
 
         client.start_recorder(log_file)
-
-        drive_loop(world, actor_list, ego_vehicle, dist_step_data, time_step_data)
-
+        driveLoop(world, actor_list, ego_vehicle, dist_step_data, time_step_data, waypoint)
         client.stop_recorder()
-
-        # client.apply_batch([carla.command.DestroyActor(ego_vehicle.id)])
 
         with open(dist_step_file, 'wb') as f:
             pickle.dump(dist_step_data, f)
 
         with open(time_step_file, 'wb') as f:
-            pickle.dump(time_step_data, f)
+            pickle.dump({'data':time_step_data, 'waypoint':waypoint}, f)
 
 
 if __name__ == '__main__':
