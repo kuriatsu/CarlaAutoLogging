@@ -8,7 +8,7 @@ import sys
 import numpy as np
 import subprocess
 
-from std_msgs.msg import Header, Int32, Float32
+from std_msgs.msg import Header, Int32, Float32, Float32MultiArray, String
 from autoware_msgs.msg import Waypoint, LaneArray, Lane, DetectedObjectArray, DetectedObject
 from autoware_config_msgs.msg import ConfigWaypointReplanner
 from geometry_msgs.msg import PoseStamped, Point, Quaternion, PointStamped, PoseWithCovarianceStamped, PolygonStamped, Polygon, Pose
@@ -36,25 +36,25 @@ class PlayCarlaData():
         self.pub_initial_pose = rospy.Publisher('/initialpose', PoseWithCovarianceStamped, queue_size=5)
         self.pub_waypoint = rospy.Publisher('/based/lane_waypoints_raw', LaneArray, queue_size=1, latch=True)
         self.pub_config_replanner = rospy.Publisher('/config/waypoint_replanner', ConfigWaypointReplanner, queue_size=1)
-        self.pub_scenario = rospy.Publisher('/current_scenario', Int32, queue_size=1)
         self.pub_carla_speed = rospy.Publisher('/vehicle_speed_carla', Float32, queue_size=1)
-        self.pub_vehicle_size = rospy.Publisher('/ego_vehicle/size', Point, queue_size=1, latch=True)
+        self.pub_ego_vehicle_size = rospy.Publisher('/ego_vehicle/size', Float32MultiArray, queue_size=1, latch=True)
+        self.pub_ego_vehicle_type = rospy.Publisher('/ego_vehicle/type', String, queue_size=1, latch=True)
         self.sub_config_replanner = rospy.Subscriber('/config/waypoint_replanner', ConfigWaypointReplanner, self.configReplannerCb)
 
         print('initialize')
         self.init_pose(self.data[0])
-        time.sleep(1.0)
         self.setWaypoint(self.data)
-        self.pub_vehicle_size.publish(Point(x=self.data[0].get('size')[0], y=self.data[0].get('size')[1], z=self.data[0].get('size')[2]))
-        self.pubActorTf(self.data[0].get('actors'))
-        self.pubConfigReplanner(self.data[0].get('speed_limit'))
+        ego_vehicle_info = self.data[0].get('actors').get('ego_vehicle')
+        self.pub_ego_vehicle_size.publish(Float32MultiArray(data=ego_vehicle_info.get('size')))
+        self.pub_ego_vehicle_type.publish(String(data=ego_vehicle_info.get('type')))
+        time.sleep(1.0)
         self.timer = rospy.Timer(rospy.Duration(0.5), self.timerCb)
 
 
     def init_pose(self, data):
         print('initialpose')
-        waypoint = data.get('waypoint')
-        quat = self.yawToQuat(waypoint[3])
+        waypoint = data.get('actors').get('ego_vehicle').get('pose')[0:3]
+        quat = self.yawToQuat(data.get('actors').get('ego_vehicle').get('pose')[3])
         pose = waypoint[0:3] + [quat.x, quat.y, quat.z, quat.w]
         command = ['bash', 'set_initialpose.sh'] + [str(i) for i in pose]
         subprocess.call(command)
@@ -69,10 +69,11 @@ class PlayCarlaData():
         lane.lane_id = 1
         for data in data_list:
             waypoint = Waypoint()
-            waypoint.pose.pose.position.x = data.get('waypoint')[0]
-            waypoint.pose.pose.position.y = data.get('waypoint')[1]
-            waypoint.pose.pose.position.z = data.get('waypoint')[2]
-            waypoint.pose.pose.orientation = self.yawToQuat(data.get('waypoint')[3])
+            pose_list = data.get('actors').get('ego_vehicle').get('pose')
+            waypoint.pose.pose.position.x = pose_list[0]
+            waypoint.pose.pose.position.y = pose_list[1]
+            waypoint.pose.pose.position.z = pose_list[2]
+            waypoint.pose.pose.orientation = self.yawToQuat(pose_list[3])
             waypoint.gid = 1
             waypoint.wpstate.event_state = 1
             waypoint.lane_id = 1
@@ -88,14 +89,19 @@ class PlayCarlaData():
         sys.stdout.write('\r' + str(self.current_data_index) + '/' + str(len(self.data)))
         sys.stdout.flush()
 
-        if self.current_data_index == len(self.data)-1:
+        if self.current_data_index == len(self.data):
             rospy.signal_shutdown("finish")
 
-        self.pub_scenario.publish(Int32(data=self.current_data_index))
-        self.pub_carla_speed.publish(Float32(data=self.data[self.current_data_index].get('waypoint')[4]))
-        self.pubConfigReplanner(self.data[self.current_data_index].get('speed_limit'))
-        self.pubActorTf(self.data[self.current_data_index].get('actors'))
-        self.pubActorCloud(self.data[self.current_data_index].get('actors'))
+        ego_data = self.data[self.current_data_index].get('actors').get('ego_vehicle')
+        del self.data[self.current_data_index]['actors']['ego_vehicle']
+        actor_data = self.data[self.current_data_index].get('actors')
+
+        self.pub_carla_speed.publish(Float32(data=ego_data.get('speed')))
+        self.pubConfigReplanner(60)
+        # self.pubConfigReplanner(ego_data.get('speed_limit'))
+        self.pubActorTf(actor_data)
+        self.pubActorCloud(actor_data)
+        self.pubActorObject(actor_data)
 
 
     def pubConfigReplanner(self, max_speed):
@@ -126,9 +132,9 @@ class PlayCarlaData():
 
     def pubActorTf(self, actors):
         for id, actor in actors.items():
-            quaternion = self.yawToQuat(actor.get('waypoint')[3])
+            quaternion = self.yawToQuat(actor.get('pose')[3])
             self.tf_broadcaster.sendTransform(
-                (actor.get('waypoint')[0], actor.get('waypoint')[1], actor.get('waypoint')[2]),
+                (actor.get('pose')[0], actor.get('pose')[1], actor.get('pose')[2]),
                 (quaternion.x, quaternion.y, quaternion.z, quaternion.w),
                 rospy.Time.now(),
                 str(id),
@@ -217,29 +223,30 @@ class PlayCarlaData():
         return polygon_stamped
 
 
-    def pubActorObject(self, autors):
+    def pubActorObject(self, actors):
         object_array = DetectedObjectArray()
         for id, actor in actors.items():
             object = DetectedObject()
             object.header = Header(stamp=rospy.Time.now(), frame_id='map')
             object.id = id
+            object.label = actor.get('type')
             object.score = 80
-            object.valid = false
+            object.valid = False
             object.space_frame = ''
-            object.pose.position.x = actor.get('waypoint')[0]
-            object.pose.position.y = actor.get('waypoint')[1]
-            object.pose.position.z = actor.get('waypoint')[2]
-            object.pose.orientation = self.yawToQuat(actor.get('waypoint')[3])
-            object.dimention.x = actor.get('size')[0]
-            object.dimention.y = actor.get('size')[1]
-            object.dimention.z = actor.get('size')[2]
-            object.velocity = actor.get('waypoint')[4]
-            object.convex_hull.polygon = calcPolygon(str(id), actor, object.header.frame_id)
-            object.convex_hull.header = object.header
+            object.pose.position.x = actor.get('pose')[0]
+            object.pose.position.y = actor.get('pose')[1]
+            object.pose.position.z = actor.get('pose')[2]
+            object.pose.orientation = self.yawToQuat(actor.get('pose')[3])
+            object.dimensions.x = actor.get('size')[0]
+            object.dimensions.y = actor.get('size')[1]
+            object.dimensions.z = actor.get('size')[2]
+            object.velocity = actor.get('speed')
+            # object.convex_hull.polygon = calcPolygon(str(id), actor, object.header.frame_id)
+            # object.convex_hull.header = object.header
             object.pose_reliable = True
             object.velocity_reliable = True
             object.acceleration_reliable = False
-            object_array.append(object)
+            object_array.objects.append(object)
 
         self.pub_object.publish(object_array)
 

@@ -103,7 +103,6 @@ def getDistStepActorData(actor_list):
     return data
 
 
-
 def getTimeStepActorData(world, ego_vehicle, actor_list):
 
     data = {}
@@ -114,6 +113,7 @@ def getTimeStepActorData(world, ego_vehicle, actor_list):
         'pose' : [trans.location.x, -trans.location.y, trans.location.z, -trans.rotation.yaw],
         'speed' : (vel.x ** 2 + vel.y ** 2) ** 0.5,
         'size': carlaVectorToList(ego_vehicle.bounding_box.extent),
+        'speed_limit' : ego_vehicle.get_speed_limit(),
         }
 
     for actor in actor_list:
@@ -124,6 +124,7 @@ def getTimeStepActorData(world, ego_vehicle, actor_list):
             'pose' : [trans.location.x, -trans.location.y, trans.location.z, -trans.rotation.yaw],
             'speed' : (vel.x ** 2 + vel.y ** 2) ** 0.5,
             'size': carlaVectorToList(actor.bounding_box.extent),
+            # 'speed_limit' : actor.get_speed_limit(),
             }
 
     return data
