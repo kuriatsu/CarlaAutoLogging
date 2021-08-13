@@ -26,7 +26,7 @@ for read_file in ${file_list[@]}; do
             is_intervention=0
         fi
 
-        python auto_intervention.py $is_intervention &
+        python intervention.py $is_intervention &
         intervention_ps=$!
 
         python play_data.py $read_file &

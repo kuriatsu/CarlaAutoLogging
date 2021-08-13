@@ -207,7 +207,7 @@ def main():
 
     setupTrafficManager(client, world)
 
-    for i in range(1, int(sys.argv[2])):
+    for i in range(int(sys.argv[2]), int(sys.argv[3])):
         log_name = sys.argv[1]
         log_file = '{}_{}.log'.format(log_name, str(i))
         dist_step_file = '{}_{}_dist.pickle'.format(log_name, str(i))
