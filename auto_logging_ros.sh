@@ -29,7 +29,7 @@ for read_file in ${file_list[@]}; do
         python intervention.py $is_intervention &
         intervention_ps=$!
 
-        python play_data.py $read_file &
+        python play_data_time.py $read_file &
         play_data_ps=$!
 
         python save_ros_data.py $read_file $out_file &
