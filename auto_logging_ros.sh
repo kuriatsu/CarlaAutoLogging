@@ -1,7 +1,7 @@
 #!/bin/bash
 
-file_list="/home/kuriatsu/Source/CarlaAutoLogging/carla_data/*dist.pickle"
-out_path="/home/kuriatsu/Source/CarlaAutoLogging/ros_data/"
+file_list="/media/kuriatsu/Samsung_TC2019/carla_drive_data/*time.pickle"
+out_path="/media/kuriatsu/Samsung_TC2019/ros_simulate_data/"
 
 intervention_list=("no_int" "int")
 # source /home/kuriatsu/Source/autoware-1.13/install/setup.bash
@@ -32,7 +32,7 @@ for read_file in ${file_list[@]}; do
         python play_data_time.py $read_file &
         play_data_ps=$!
 
-        python save_ros_data.py $read_file $out_file &
+        python save_ros_data_time.py $read_file $out_file &
         save_data_ps=$!
 
         wait $play_data_ps

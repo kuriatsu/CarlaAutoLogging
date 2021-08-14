@@ -214,8 +214,9 @@ def main():
         with open(dist_step_file, 'wb') as f:
             pickle.dump(dist_step_data, f)
 
+        time_data = {'data':time_step_data, 'waypoint':waypoint}
         with open(time_step_file, 'wb') as f:
-            pickle.dump({'data':time_step_data, 'waypoint':waypoint}, f)
+            pickle.dump(time_data, f)
 
 
 if __name__ == '__main__':

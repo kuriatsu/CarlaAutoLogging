@@ -7,7 +7,7 @@ import pickle
 import sys
 import numpy as np
 from geometry_msgs.msg import PoseStamped
-from std_msgs.msg import Int32, Bool
+from std_msgs.msg import Int32, Bool, Float32MultiArray, String
 from autoware_msgs.msg import VehicleCmd, DetectedObjectArray, DetectedObject
 from sensor_msgs.msg import PointCloud2, PointField
 import sensor_msgs.point_cloud2 as pc2
@@ -55,7 +55,7 @@ class SaveRosData():
             actors_data[actor.id] = {
             'type' : actor.label,
             'pose' : [actor.pose.position.x, actor.pose.position.y, actor.pose.position.z, self.quatToYaw(actor.pose.orientation)],
-            'speed' : actor.velocity,
+            'speed' : actor.velocity.linear.x,
             'size' : [actor.dimensions.x, actor.dimensions.y, actor.dimensions.z],
             }
 
@@ -108,6 +108,11 @@ class SaveRosData():
 
 
 if __name__ == '__main__':
+    # print('start')
+    # rospy.init_node('save_ros_data_node')
+    # save_ros_data = SaveRosData(sys.argv[1])
+    # rospy.spin()
+    # save_ros_data.saveData()
     try:
         print('start')
         rospy.init_node('save_ros_data_node')

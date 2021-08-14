@@ -23,13 +23,16 @@ class PlayCarlaData():
     def __init__(self, data_file):
 
         with open(data_file, 'rb') as f:
-            self.data = pickle.load(f)
+            buf = pickle.load(f)
 
+        self.data = buf.get('data')
+        self.waypoint = buf.get('waypoint')
         self.tf_broadcaster = tf.TransformBroadcaster()
         self.tf_listener = tf.TransformListener()
         self.config_replanner = None
         self.closest_waypoint = 0
         self.current_data_index = 0
+        self.current_pose = None
 
         self.pub_cloud = rospy.Publisher('/points_no_ground', PointCloud2, queue_size=5)
         self.pub_object = rospy.Publisher('/detection/contour_tracker/objects', DetectedObjectArray, queue_size=5)
@@ -40,10 +43,11 @@ class PlayCarlaData():
         self.pub_ego_vehicle_size = rospy.Publisher('/ego_vehicle/size', Float32MultiArray, queue_size=1, latch=True)
         self.pub_ego_vehicle_type = rospy.Publisher('/ego_vehicle/type', String, queue_size=1, latch=True)
         self.sub_config_replanner = rospy.Subscriber('/config/waypoint_replanner', ConfigWaypointReplanner, self.configReplannerCb)
+        self.sub_current_pose = rospy.Subscriber('/current_pose', PoseStamped, self.currentPoseCb)
 
         print('initialize')
         self.init_pose(self.data[0])
-        self.setWaypoint(self.data)
+        self.setWaypoint(self.waypoint)
         ego_vehicle_info = self.data[0].get('actors').get('ego_vehicle')
         self.pub_ego_vehicle_size.publish(Float32MultiArray(data=ego_vehicle_info.get('size')))
         self.pub_ego_vehicle_type.publish(String(data=ego_vehicle_info.get('type')))
@@ -60,20 +64,20 @@ class PlayCarlaData():
         subprocess.call(command)
 
 
-    def setWaypoint(self, data_list):
+    def setWaypoint(self, waypoint):
         print('set waypoint')
         lane_array = LaneArray()
         lane = Lane()
         lane.header.stamp = rospy.Time.now()
         lane.header.frame_id = 'map'
         lane.lane_id = 1
-        for data in data_list:
+        for data in waypoint:
             waypoint = Waypoint()
-            pose_list = data.get('actors').get('ego_vehicle').get('pose')
-            waypoint.pose.pose.position.x = pose_list[0]
-            waypoint.pose.pose.position.y = pose_list[1]
-            waypoint.pose.pose.position.z = pose_list[2]
-            waypoint.pose.pose.orientation = self.yawToQuat(pose_list[3])
+            # pose_list = data.get('actors').get('ego_vehicle').get('pose')
+            waypoint.pose.pose.position.x = data[0]
+            waypoint.pose.pose.position.y = data[1]
+            waypoint.pose.pose.position.z = data[2]
+            waypoint.pose.pose.orientation = self.yawToQuat(data[3])
             waypoint.gid = 1
             waypoint.wpstate.event_state = 1
             waypoint.lane_id = 1
@@ -92,13 +96,14 @@ class PlayCarlaData():
         if self.current_data_index == len(self.data):
             rospy.signal_shutdown("finish")
 
+        index = self.getClosestWaypoint(self.waypoint, self.current_pose.position)
+        self.pubConfigReplanner(self.waypoint[index][4])
+
         ego_data = self.data[self.current_data_index].get('actors').get('ego_vehicle')
+        self.pub_carla_speed.publish(Float32(data=ego_data.get('speed')))
+
         del self.data[self.current_data_index]['actors']['ego_vehicle']
         actor_data = self.data[self.current_data_index].get('actors')
-
-        self.pub_carla_speed.publish(Float32(data=ego_data.get('speed')))
-        self.pubConfigReplanner(60)
-        # self.pubConfigReplanner(ego_data.get('speed_limit'))
         self.pubActorTf(actor_data)
         self.pubActorCloud(actor_data)
         self.pubActorObject(actor_data)
@@ -240,7 +245,7 @@ class PlayCarlaData():
             object.dimensions.x = actor.get('size')[0]
             object.dimensions.y = actor.get('size')[1]
             object.dimensions.z = actor.get('size')[2]
-            object.velocity = actor.get('speed')
+            object.velocity.linear.x = actor.get('speed')
             # object.convex_hull.polygon = calcPolygon(str(id), actor, object.header.frame_id)
             # object.convex_hull.header = object.header
             object.pose_reliable = True
@@ -249,6 +254,18 @@ class PlayCarlaData():
             object_array.objects.append(object)
 
         self.pub_object.publish(object_array)
+
+
+    def getClosestWaypoint(self, waypoint, point):
+        min_dist = 1000000
+        closest_waypoint = None
+        for i, data in enumerate(waypoint):
+            dist = (point.x - data[0]) ** 2 + (point.y - data[1]) ** 2
+            if min_dist > dist:
+                min_dist = dist
+                closest_waypoint = i
+
+        return closest_waypoint
 
 
     def configReplannerCb(self, msg):
@@ -260,6 +277,8 @@ class PlayCarlaData():
         return Quaternion(x=quat[0], y=quat[1], z=quat[2], w=quat[3])
 
 
+    def currentPoseCb(self, msg):
+        self.current_pose = msg.pose
 
 
 if __name__ == '__main__':
