@@ -27,7 +27,6 @@ class AutoIntervention():
         self.pub_intervention = rospy.Publisher('/is_intervened', Bool, queue_size=1)
         self.sub_carla_speed = rospy.Subscriber('/vehicle_speed_carla', Float32, self.carlaSpeedCb)
         self.sub_detection_range = rospy.Subscriber('/detection_range', MarkerArray, self.detectionRangeCb)
-        # self.sub_twist = rospy.Subscriber('/vehicle_cmd_twist_gate', VehicleCmd, self.twistCb)
         self.sub_twist = rospy.Subscriber('/twist_raw', TwistStamped, self.twistCb)
 
 
@@ -55,11 +54,9 @@ class AutoIntervention():
         curve_angular = 0.07
 
         carla_speed = self.carla_speed
-        # autoware_speed = msg.twist_cmd.twist.linear.x
         autoware_speed = msg.twist.linear.x
 
         out_twist = VehicleCmd()
-        # out_twist = msg
         out_twist.twist_cmd.twist = msg.twist
         out_twist.twist_cmd.twist.angular.z *= angular_multiply_rate
 
