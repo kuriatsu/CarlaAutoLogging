@@ -8,7 +8,7 @@ import sys
 import numpy as np
 
 from autoware_msgs.msg import VehicleCmd
-from geometry_msgs.msg import PoseStamped, Point32, Twist
+from geometry_msgs.msg import PoseStamped, Point32, Twist, TwistStamped
 from sensor_msgs.msg import PointCloud, ChannelFloat32
 from std_msgs.msg import Int32, Bool, Float32
 from visualization_msgs.msg import MarkerArray, Marker
@@ -27,7 +27,8 @@ class AutoIntervention():
         self.pub_intervention = rospy.Publisher('/is_intervened', Bool, queue_size=1)
         self.sub_carla_speed = rospy.Subscriber('/vehicle_speed_carla', Float32, self.carlaSpeedCb)
         self.sub_detection_range = rospy.Subscriber('/detection_range', MarkerArray, self.detectionRangeCb)
-        self.sub_twist = rospy.Subscriber('/vehicle_cmd_autoware', VehicleCmd, self.twistCb)
+        # self.sub_twist = rospy.Subscriber('/vehicle_cmd_twist_gate', VehicleCmd, self.twistCb)
+        self.sub_twist = rospy.Subscriber('/twist_raw', TwistStamped, self.twistCb)
 
 
     def carlaSpeedCb(self, msg):
@@ -54,8 +55,12 @@ class AutoIntervention():
         curve_angular = 0.07
 
         carla_speed = self.carla_speed
-        autoware_speed = msg.twist_cmd.twist.linear.x
-        out_twist = msg
+        # autoware_speed = msg.twist_cmd.twist.linear.x
+        autoware_speed = msg.twist.linear.x
+
+        out_twist = VehicleCmd()
+        # out_twist = msg
+        out_twist.twist_cmd.twist = msg.twist
         out_twist.twist_cmd.twist.angular.z *= angular_multiply_rate
 
         if self.intervention:

@@ -122,8 +122,8 @@ class PlayCarlaData():
         config.overwrite_vmax_mode=True
         config.replan_endpoint_mode=False
         config.velocity_max = max_speed
-        config.velocity_min = 8.0
-        config.radius_thresh= 50
+        config.velocity_min = 15.0
+        config.radius_thresh= 10
         config.radius_min= 10.0
         config.accel_limit= 0.5
         config.decel_limit= 0.5

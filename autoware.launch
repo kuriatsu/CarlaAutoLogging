@@ -51,11 +51,11 @@
         '{header: {seq: 0, stamp: {secs: 0, nsecs: 0}, frame_id: ''},
         stop_distance_obstacle: 10.0,
         stop_distance_stopline: 5.0,
-        detection_range: 1.29999995232,
+        detection_range: 1.3,
         threshold_points: 5,
         detection_height_top: 0.10000000149,
         detection_height_bottom: -1.5,
-        deceleration_obstacle: 0.699999988079,
+        deceleration_obstacle: 0.3,
         deceleration_stopline: 0.300000011921,
         velocity_change_limit: 7.0,
         deceleration_range: 2.0,
@@ -91,7 +91,7 @@
     <node pkg="twist_gate" type="twist_gate" name="twist_gate" output="log">
         <param name="loop_rate" value="30.0" />
         <param name="use_decision_maker" value="false" />
-        <remap from="/vehicle_cmd" to="/vehicle_cmd_autoware"/>
+        <remap from="/vehicle_cmd" to="/vehicle_cmd_twist_gate" />
     </node>
 
     <include file="$(find wf_simulator)/launch/wf_simulator.launch">
