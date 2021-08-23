@@ -46,12 +46,17 @@ class PlayCarlaData():
         self.sub_current_pose = rospy.Subscriber('/current_pose', PoseStamped, self.currentPoseCb)
 
         print('initialize')
-        self.init_pose(self.data[0])
         self.setWaypoint(self.waypoint)
         ego_vehicle_info = self.data[0].get('actors').get('ego_vehicle')
         self.pub_ego_vehicle_size.publish(Float32MultiArray(data=ego_vehicle_info.get('size')))
         self.pub_ego_vehicle_type.publish(String(data=ego_vehicle_info.get('type')))
+        actor_data = self.data[0].get('actors')
+        self.pubActorTf(actor_data)
         time.sleep(1.0)
+        self.pubActorCloud(actor_data)
+        self.pubActorObject(actor_data)
+        time.sleep(1.0)
+        self.init_pose(self.data[0])
         self.timer = rospy.Timer(rospy.Duration(0.5), self.timerCb)
 
 
@@ -73,7 +78,6 @@ class PlayCarlaData():
         lane.lane_id = 1
         for data in waypoint:
             waypoint = Waypoint()
-            # pose_list = data.get('actors').get('ego_vehicle').get('pose')
             waypoint.pose.pose.position.x = data.get('x')
             waypoint.pose.pose.position.y = data.get('y')
             waypoint.pose.pose.position.z = data.get('z')
@@ -100,7 +104,6 @@ class PlayCarlaData():
         self.pubConfigReplanner(self.waypoint[current_waypoint].get('speed_limit'))
         self.pub_carla_speed.publish(Float32(data=self.waypoint[current_waypoint].get('speed')))
 
-        del self.data[self.current_data_index]['actors']['ego_vehicle']
         actor_data = self.data[self.current_data_index].get('actors')
         self.pubActorTf(actor_data)
         self.pubActorCloud(actor_data)
@@ -120,11 +123,11 @@ class PlayCarlaData():
         config.overwrite_vmax_mode=True
         config.replan_endpoint_mode=False
         config.velocity_max = speed_limit
-        config.velocity_min = 10.0
+        config.velocity_min = 20.0
         config.radius_thresh= 50
         config.radius_min= 10.0
-        config.accel_limit= 0.2
-        config.decel_limit= 0.2
+        config.accel_limit= 0.5
+        config.decel_limit= 0.5
         config.velocity_offset= 0
         config.braking_distance= 5
         config.end_point_offset= 0
@@ -135,7 +138,8 @@ class PlayCarlaData():
 
     def pubActorTf(self, actors):
         for id, actor in actors.items():
-
+            if id == 'ego_vehicle':
+                continue
             quaternion = self.yawToQuat(actor.get('pose')[3])
             self.tf_broadcaster.sendTransform(
                 (actor.get('pose')[0], actor.get('pose')[1], actor.get('pose')[2]),
@@ -157,6 +161,8 @@ class PlayCarlaData():
         point_cloud = []
 
         for id, actor in actors.items():
+            if id == 'ego_vehicle':
+                continue
             polygon = self.calcPolygon(str(id), actor, cloud_header.frame_id)
             if polygon is None:
                 print('failed to get polygon')
@@ -232,7 +238,8 @@ class PlayCarlaData():
     def pubActorObject(self, actors):
         object_array = DetectedObjectArray()
         for id, actor in actors.items():
-
+            if id == 'ego_vehicle':
+                continue
             object = DetectedObject()
             object.header = Header(stamp=rospy.Time.now(), frame_id='map')
             object.id = id

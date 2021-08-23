@@ -48,6 +48,7 @@ def spawnEgoVehicle(client, world, blueprint):
     transform = random.choice(spawn_points)
     batch = [carla.command.SpawnActor(blueprint, transform).then(carla.command.SetAutopilot(carla.command.FutureActor, True))]
 
+    # spawn
     ego_vehicle = None
     while ego_vehicle is None:
         for response in client.apply_batch_sync(batch):
@@ -58,10 +59,7 @@ def spawnEgoVehicle(client, world, blueprint):
                 if actor.attributes.get('role_name') == 'ego_vehicle':
                     ego_vehicle = actor
 
-    world.wait_for_tick()
-    ego_vehicle.set_autopilot(True)
-    print('set autopilot')
-
+    # get traffic manager
     tm_get = False
     while not tm_get:
         try:
@@ -70,9 +68,19 @@ def spawnEgoVehicle(client, world, blueprint):
         except:
             tm_get = False
 
-    tm.vehicle_percentage_speed_difference(ego_vehicle, 0)
+    # setup
+    world.wait_for_tick()
+    ego_vehicle.set_autopilot(True)
+    print('set autopilot')
     tm.vehicle_percentage_speed_difference(ego_vehicle, 0)
     tm.ignore_lights_percentage(ego_vehicle, 100)
+    print('set ego_vehicle traffic manager')
+
+    # setup
+    world.wait_for_tick()
+    ego_vehicle.set_autopilot(True)
+    print('set autopilot')
+    tm.vehicle_percentage_speed_difference(ego_vehicle, 0)
     tm.ignore_lights_percentage(ego_vehicle, 100)
     print('set ego_vehicle traffic manager')
 
@@ -99,7 +107,7 @@ def getWp(actor):
 
 def getActorData(actor):
     trans = actor.get_transform()
-    if trans.x == 0.0 and trans.y == 0.0:
+    if trans.location.x == 0.0 and trans.location.y == 0.0:
         return None
 
     vel = actor.get_velocity()
@@ -120,7 +128,6 @@ def getActorListData(ego_vehicle, actor_list):
     for actor in actor_list:
         actor_data = getActorData(actor)
         if actor_data is None:
-            print('{} is died'.format(str(actor.id))))
             del actor
             continue
         else:
@@ -198,14 +205,28 @@ def main():
     # try to collect actor other than ego_vehicle
     for i in range(0, 10):
         actor_list = []
+        walker_num = 0
+        vehicle_num = 0
         for actor in world.get_actors():
             if actor.attributes.get('role_name') == 'ego_vehicle':
                 continue
+
             elif actor.type_id.startswith('walker') or actor.type_id.startswith('vehicle'):
                 actor_list.append(actor)
+                if actor.type_id.startswith('walker'):
+                    walker_num += 1
+                else:
+                    vehicle_num += 1
+
+            world.wait_for_tick()
 
         if len(actor_list) > 1:
             break
+
+    # if no walker or vehicle catched, exit and retry.
+    if len(actor_list) <= 1 or vehicle_num == 0 or walker_num == 0:
+        print('failed to get walker or vehicle')
+        exit()
 
     setupTrafficManager(client, world)
 

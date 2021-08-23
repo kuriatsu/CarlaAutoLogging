@@ -30,9 +30,9 @@
         <arg name="velocity_max" value="50"/>
         <arg name="radius_thresh" value="50"/>
         <arg name="radius_min" value="6"/>
-        <arg name="accel_limit" value="0.3"/>
-        <arg name="decel_limit" value="0.3"/>
-        <arg name="velocity_offset" value="4"/>
+        <arg name="accel_limit" value="0.5"/>
+        <arg name="decel_limit" value="0.5"/>
+        <arg name="velocity_offset" value="0"/>
         <arg name="braking_distance" value="5"/>
         <arg name="end_point_offset" value="0"/>
         <arg name="use_decision_maker" value="false"/>
@@ -52,13 +52,13 @@
         stop_distance_obstacle: 5.0,
         stop_distance_stopline: 5.0,
         detection_range: 1.3,
-        deceleration_range: 1.7,
-        threshold_points: 5,
-        detection_height_top: 0.10000000149,
+        deceleration_range: 1.8,
+        threshold_points: 1,
+        detection_height_top: 10,
         detection_height_bottom: -1.5,
         deceleration_obstacle: 0.3,
         deceleration_stopline: 0.3,
-        velocity_change_limit: 5.0,
+        velocity_change_limit: 10.0,
         temporal_waypoints_size: 100.0
         }' -l " output="screen"
         />
@@ -73,8 +73,8 @@
         '{header: {seq: 0, stamp: {secs: 0, nsecs: 0}, frame_id: ''},
         param_flag: 0,
         velocity: 0.0,
-        lookahead_distance: 2.0,
-        lookahead_ratio: 1.5,
+        lookahead_distance: 1.5,
+        lookahead_ratio: 1.3,
         minimum_lookahead_distance: 2.0,
         displacement_threshold: 0.0,
         relative_angle_threshold: 0.0
@@ -98,6 +98,8 @@
         <arg name="initialize_source" value="RVIZ"/>
         <arg name="simulation_frame_id" value="base_link"/>
     </include>
+
+    <include file="$(find vehicle_description)/launch/vehicle_model.launch"/>
 
     <node pkg="rviz" type="rviz" name="rviz" args="-d $(dirname)/play_data.rviz"/>
 
