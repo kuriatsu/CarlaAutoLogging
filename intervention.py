@@ -47,7 +47,7 @@ class AutoIntervention():
         if self.carla_speed is None:
             return
 
-        vel_range = 0.5 # rate
+        vel_range = 0.4 # rate
         curve_vel = 2.5 # m/s
         avoid_stop_vel = 4.0
         angular_multiply_rate = 4.0
@@ -74,7 +74,7 @@ class AutoIntervention():
 
                 else:
                     print('\ncurve obstacle accel')
-                    out_twist.twist_cmd.twist.linear.x = curve_vel
+                    out_twist.twist_cmd.twist.linear.x = carla_speed
                     self.pub_intervention.publish(Bool(data=True))
 
             # if autoware_speed == 0.0 and carla_speed == 0.0:

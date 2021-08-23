@@ -74,10 +74,10 @@ class PlayCarlaData():
         for data in waypoint:
             waypoint = Waypoint()
             # pose_list = data.get('actors').get('ego_vehicle').get('pose')
-            waypoint.pose.pose.position.x = data[0]
-            waypoint.pose.pose.position.y = data[1]
-            waypoint.pose.pose.position.z = data[2]
-            waypoint.pose.pose.orientation = self.yawToQuat(data[3])
+            waypoint.pose.pose.position.x = data.get('x')
+            waypoint.pose.pose.position.y = data.get('y')
+            waypoint.pose.pose.position.z = data.get('z')
+            waypoint.pose.pose.orientation = self.yawToQuat(data.get('yaw'))
             waypoint.gid = 1
             waypoint.wpstate.event_state = 1
             waypoint.lane_id = 1
@@ -96,11 +96,9 @@ class PlayCarlaData():
         if self.current_data_index == len(self.data):
             rospy.signal_shutdown("finish")
 
-        index = self.getClosestWaypoint(self.waypoint, self.current_pose.position)
-        self.pubConfigReplanner(self.waypoint[index][4])
-
-        ego_data = self.data[self.current_data_index].get('actors').get('ego_vehicle')
-        self.pub_carla_speed.publish(Float32(data=ego_data.get('speed')))
+        current_waypoint = self.getClosestWaypoint(self.waypoint, self.current_pose.position)
+        self.pubConfigReplanner(self.waypoint[current_waypoint].get('speed_limit'))
+        self.pub_carla_speed.publish(Float32(data=self.waypoint[current_waypoint].get('speed')))
 
         del self.data[self.current_data_index]['actors']['ego_vehicle']
         actor_data = self.data[self.current_data_index].get('actors')
@@ -109,8 +107,8 @@ class PlayCarlaData():
         self.pubActorObject(actor_data)
 
 
-    def pubConfigReplanner(self, max_speed):
-        if self.config_replanner is not None and self.config_replanner.velocity_max == max_speed:
+    def pubConfigReplanner(self, speed_limit):
+        if self.config_replanner is not None and self.config_replanner.velocity_max == speed_limit:
             return
 
         config = ConfigWaypointReplanner()
@@ -121,12 +119,12 @@ class PlayCarlaData():
         config.replan_curve_mode=True
         config.overwrite_vmax_mode=True
         config.replan_endpoint_mode=False
-        config.velocity_max = max_speed
-        config.velocity_min = 15.0
-        config.radius_thresh= 10
+        config.velocity_max = speed_limit
+        config.velocity_min = 10.0
+        config.radius_thresh= 50
         config.radius_min= 10.0
-        config.accel_limit= 0.5
-        config.decel_limit= 0.5
+        config.accel_limit= 0.2
+        config.decel_limit= 0.2
         config.velocity_offset= 0
         config.braking_distance= 5
         config.end_point_offset= 0
@@ -137,6 +135,7 @@ class PlayCarlaData():
 
     def pubActorTf(self, actors):
         for id, actor in actors.items():
+
             quaternion = self.yawToQuat(actor.get('pose')[3])
             self.tf_broadcaster.sendTransform(
                 (actor.get('pose')[0], actor.get('pose')[1], actor.get('pose')[2]),
@@ -189,7 +188,7 @@ class PlayCarlaData():
 
         horizontal_edge_num = int(actor.get('size')[0] * 2 / 0.2)
         for i in range(0, horizontal_edge_num):
-            source_matrix[0,3] = -actor.get('size')[0] + 0.1 * i
+            source_matrix[0,3] = -actor.get('size')[0] + 0.2 * i
             source_matrix[1,3] = actor.get('size')[1]
             source_matrix[2,3] = 0.0
             target_matrix = np.dot(transform_matrix, source_matrix)
@@ -201,6 +200,7 @@ class PlayCarlaData():
 
             source_matrix[1,3] *= -1
             target_matrix = np.dot(transform_matrix, source_matrix)
+            target_point = Point()
             target_point.x = target_matrix[0, 3]
             target_point.y = target_matrix[1, 3]
             target_point.z = target_matrix[2, 3]
@@ -208,11 +208,11 @@ class PlayCarlaData():
 
         vertical_edge_num = int(actor.get('size')[1] * 2 / 0.2)
         for i in range(0, vertical_edge_num):
-            target_point = Point()
             source_matrix[0,3] = actor.get('size')[0]
-            source_matrix[1,3] = -actor.get('size')[1] + 0.1 * i
+            source_matrix[1,3] = -actor.get('size')[1] + 0.2 * i
             source_matrix[2,3] = 0.0
             target_matrix = np.dot(transform_matrix, source_matrix)
+            target_point = Point()
             target_point.x = target_matrix[0, 3]
             target_point.y = target_matrix[1, 3]
             target_point.z = target_matrix[2, 3]
@@ -220,6 +220,7 @@ class PlayCarlaData():
 
             source_matrix[0,3] *= -1
             target_matrix = np.dot(transform_matrix, source_matrix)
+            target_point = Point()
             target_point.x = target_matrix[0, 3]
             target_point.y = target_matrix[1, 3]
             target_point.z = target_matrix[2, 3]
@@ -231,6 +232,7 @@ class PlayCarlaData():
     def pubActorObject(self, actors):
         object_array = DetectedObjectArray()
         for id, actor in actors.items():
+
             object = DetectedObject()
             object.header = Header(stamp=rospy.Time.now(), frame_id='map')
             object.id = id
@@ -260,7 +262,7 @@ class PlayCarlaData():
         min_dist = 1000000
         closest_waypoint = None
         for i, data in enumerate(waypoint):
-            dist = (point.x - data[0]) ** 2 + (point.y - data[1]) ** 2
+            dist = (point.x - data.get('x')) ** 2 + (point.y - data.get('y')) ** 2
             if min_dist > dist:
                 min_dist = dist
                 closest_waypoint = i

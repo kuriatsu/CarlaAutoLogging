@@ -85,12 +85,23 @@ def carlaVectorToList(vector):
 
 def getWp(actor):
     trans = actor.get_transform()
-    wp = [trans.location.x, -trans.location.y, trans.location.z, -trans.rotation.yaw, actor.get_speed_limit(), 0]
+    vel = actor.get_velocity()
+    wp = {
+        'x' : trans.location.x,
+        'y' : -trans.location.y,
+        'z' : trans.location.z,
+        'yaw' : -trans.rotation.yaw,
+        'speed_limit' : actor.get_speed_limit(),
+        'speed' : (vel.x ** 2 + vel.y ** 2) ** 0.5,
+        }
     return wp
 
 
 def getActorData(actor):
     trans = actor.get_transform()
+    if trans.x == 0.0 and trans.y == 0.0:
+        return None
+
     vel = actor.get_velocity()
     data = {
         'type' : actor.type_id,
@@ -107,7 +118,13 @@ def getActorListData(ego_vehicle, actor_list):
     data['ego_vehicle'] = getActorData(ego_vehicle)
 
     for actor in actor_list:
-        data[actor.id] = getActorData(actor)
+        actor_data = getActorData(actor)
+        if actor_data is None:
+            print('{} is died'.format(str(actor.id))))
+            del actor
+            continue
+        else:
+            data[actor.id] = actor_data
 
     return data
 
@@ -178,12 +195,17 @@ def main():
 
     ego_blueprint = createEgoBlueprint(world, 'ego_vehicle')
 
-    actor_list = []
-    for actor in world.get_actors():
-        if actor.attributes.get('role_name') == 'ego_vehicle':
-            continue
-        elif actor.type_id.startswith('walker') or actor.type_id.startswith('vehicle'):
-            actor_list.append(actor)
+    # try to collect actor other than ego_vehicle
+    for i in range(0, 10):
+        actor_list = []
+        for actor in world.get_actors():
+            if actor.attributes.get('role_name') == 'ego_vehicle':
+                continue
+            elif actor.type_id.startswith('walker') or actor.type_id.startswith('vehicle'):
+                actor_list.append(actor)
+
+        if len(actor_list) > 1:
+            break
 
     setupTrafficManager(client, world)
 
@@ -215,6 +237,7 @@ def main():
             pickle.dump(dist_step_data, f)
 
         time_data = {'data':time_step_data, 'waypoint':waypoint}
+        print(len(time_step_data), len(time_step_data[1].get('actors')))
         with open(time_step_file, 'wb') as f:
             pickle.dump(time_data, f)
 
