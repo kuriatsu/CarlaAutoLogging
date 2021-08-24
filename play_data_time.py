@@ -33,6 +33,7 @@ class PlayCarlaData():
         self.closest_waypoint = 0
         self.current_data_index = 0
         self.current_pose = None
+        self.start_time = None
 
         self.pub_cloud = rospy.Publisher('/points_no_ground', PointCloud2, queue_size=5)
         self.pub_object = rospy.Publisher('/detection/contour_tracker/objects', DetectedObjectArray, queue_size=5)
@@ -42,25 +43,46 @@ class PlayCarlaData():
         self.pub_carla_speed = rospy.Publisher('/vehicle_speed_carla', Float32, queue_size=1)
         self.pub_ego_vehicle_size = rospy.Publisher('/ego_vehicle/size', Float32MultiArray, queue_size=1, latch=True)
         self.pub_ego_vehicle_type = rospy.Publisher('/ego_vehicle/type', String, queue_size=1, latch=True)
+        self.pub_simulate_progress = rospy.Publisher('/simulate_progress', Float32, queue_size=1)
+        self.pub_mileage_progress = rospy.Publisher('/mileage_progress', Float32, queue_size=1)
+        # self.pub_twist = rospy.Publisher('/vehicle_cmd', VehicleCmd, queue_size=1)
         self.sub_config_replanner = rospy.Subscriber('/config/waypoint_replanner', ConfigWaypointReplanner, self.configReplannerCb)
         self.sub_current_pose = rospy.Subscriber('/current_pose', PoseStamped, self.currentPoseCb)
 
         print('initialize')
+        self.init_data(0)
+        self.start_time = rospy.get_time()
+        self.timer = rospy.Timer(rospy.Duration(0.1), self.timerCb)
+
+
+    def init_data(self, index):
+
         self.setWaypoint(self.waypoint)
-        ego_vehicle_info = self.data[0].get('actors').get('ego_vehicle')
+        print('set waypoint')
+
+        ego_vehicle_info = self.data[index].get('actors').get('ego_vehicle')
         self.pub_ego_vehicle_size.publish(Float32MultiArray(data=ego_vehicle_info.get('size')))
         self.pub_ego_vehicle_type.publish(String(data=ego_vehicle_info.get('type')))
-        actor_data = self.data[0].get('actors')
-        self.pubActorTf(actor_data)
-        time.sleep(1.0)
-        self.pubActorCloud(actor_data)
+        print('set ego_vehicle info')
+
+        actor_data = self.data[index].get('actors')
+        result = False
+        while not result:
+            self.pubActorTf(actor_data)
+            print('pub TF')
+            result = self.pubActorCloud(actor_data)
+        print('pub cloud')
+
         self.pubActorObject(actor_data)
-        time.sleep(1.0)
-        self.init_pose(self.data[0])
-        self.timer = rospy.Timer(rospy.Duration(0.5), self.timerCb)
+        print('pub object')
+
+        # self.setZeroSpeed()
+        self.initialPose(self.data[index])
+        # self.setZeroSpeed()
+        print('pub initialpose')
 
 
-    def init_pose(self, data):
+    def initialPose(self, data):
         print('initialpose')
         waypoint = data.get('actors').get('ego_vehicle').get('pose')[0:3]
         quat = self.yawToQuat(data.get('actors').get('ego_vehicle').get('pose')[3])
@@ -70,7 +92,6 @@ class PlayCarlaData():
 
 
     def setWaypoint(self, waypoint):
-        print('set waypoint')
         lane_array = LaneArray()
         lane = Lane()
         lane.header.stamp = rospy.Time.now()
@@ -91,23 +112,36 @@ class PlayCarlaData():
         self.pub_waypoint.publish(lane_array)
 
 
-    def timerCb(self, event):
+    # def setZeroSpeed(self):
+    #     out_twist = VehicleCmd()
+    #     out_twist.header.stamp = rospy.Time.now()
+    #     out_twist.twist_cmd.twist.linear.x = 0.0
+    #     out_twist.twist_cmd.twist.angular.z = 0.0
+    #     self.pub_twist.publish(out_twist)
 
-        self.current_data_index += 1
+
+    def timerCb(self, event):
+        elapsed_time = rospy.get_time() - self.start_time
+        next_scenario_time = self.data[self.current_data_index + 1].get('time') - self.data[0].get('time')
+        if elapsed_time > next_scenario_time:
+            self.current_data_index += 1
+
         sys.stdout.write('\r' + str(self.current_data_index) + '/' + str(len(self.data)))
         sys.stdout.flush()
-
-        if self.current_data_index == len(self.data):
-            rospy.signal_shutdown("finish")
-
-        current_waypoint = self.getClosestWaypoint(self.waypoint, self.current_pose.position)
-        self.pubConfigReplanner(self.waypoint[current_waypoint].get('speed_limit'))
-        self.pub_carla_speed.publish(Float32(data=self.waypoint[current_waypoint].get('speed')))
+        self.pub_simulate_progress.publish(Float32(data=(100 * self.current_data_index/(len(self.data)-1))))
 
         actor_data = self.data[self.current_data_index].get('actors')
         self.pubActorTf(actor_data)
         self.pubActorCloud(actor_data)
         self.pubActorObject(actor_data)
+
+        current_waypoint = self.getClosestWaypoint(self.waypoint, self.current_pose.position)
+        self.pubConfigReplanner(self.waypoint[current_waypoint].get('speed_limit'))
+        self.pub_carla_speed.publish(Float32(data=self.waypoint[current_waypoint].get('speed')))
+        self.pub_mileage_progress.publish(Float32(data=(100*current_waypoint/(len(self.waypoint)-1))))
+
+        if self.current_data_index == len(self.data)-1:
+            rospy.signal_shutdown("finish")
 
 
     def pubConfigReplanner(self, speed_limit):
@@ -165,15 +199,19 @@ class PlayCarlaData():
                 continue
             polygon = self.calcPolygon(str(id), actor, cloud_header.frame_id)
             if polygon is None:
-                print('failed to get polygon')
                 continue
 
             for polygon_point in polygon.points:
                 point = [polygon_point.x, polygon_point.y, polygon_point.z, 0xffffff]
                 point_cloud.append(point)
 
+        if not point_cloud:
+            print('failed to get polygon')
+            return False
+
         cloud = pc2.create_cloud(cloud_header, cloud_field, point_cloud)
         self.pub_cloud.publish(cloud)
+        return True
 
 
     def calcPolygon(self, source_frame, actor, target_frame):
@@ -183,7 +221,6 @@ class PlayCarlaData():
         try:
             transform, quaternion = self.tf_listener.lookupTransform(target_frame, source_frame, rospy.Time(0))
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
-            print('failed to get tf')
             return
 
         source_matrix = tf.transformations.quaternion_matrix([0,0,0,0])

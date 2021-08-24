@@ -8,7 +8,7 @@ import sys
 import numpy as np
 
 from autoware_msgs.msg import VehicleCmd
-from geometry_msgs.msg import PoseStamped, Point32, Twist, TwistStamped
+from geometry_msgs.msg import PoseStamped, Point32, Twist, TwistStamped, PoseWithCovarianceStamped
 from sensor_msgs.msg import PointCloud, ChannelFloat32
 from std_msgs.msg import Int32, Bool, Float32, String
 from visualization_msgs.msg import MarkerArray, Marker
@@ -22,6 +22,7 @@ class AutoIntervention():
         self.time_step_data = []
         self.avoid_deceleration = False
         self.carla_speed = None
+        self.get_carla_speed = False
 
         self.pub_twist = rospy.Publisher('/vehicle_cmd', VehicleCmd, queue_size=1)
         self.pub_intervention = rospy.Publisher('/is_intervened', Bool, queue_size=1)
@@ -29,10 +30,12 @@ class AutoIntervention():
         self.sub_carla_speed = rospy.Subscriber('/vehicle_speed_carla', Float32, self.carlaSpeedCb)
         self.sub_detection_range = rospy.Subscriber('/detection_range', MarkerArray, self.detectionRangeCb)
         self.sub_twist = rospy.Subscriber('/twist_raw', TwistStamped, self.twistCb)
+        self.sub_initial_pose = rospy.Subscriber('/initialpose', PoseWithCovarianceStamped, self.initialposeCb)
 
 
     def carlaSpeedCb(self, msg):
         self.carla_speed = msg.data
+
 
     def detectionRangeCb(self, msg):
 
@@ -45,6 +48,7 @@ class AutoIntervention():
     def twistCb(self, msg):
 
         if self.carla_speed is None:
+            self.setZeroSpeed()
             return
 
         vel_range = 0.3 # allow rate
@@ -59,6 +63,7 @@ class AutoIntervention():
         out_twist = VehicleCmd()
         out_twist.twist_cmd.twist = msg.twist
         out_twist.twist_cmd.twist.angular.z *= angular_multiply_rate
+
 
         if self.intervention:
             if autoware_speed > carla_speed * (1.0 + vel_range):
@@ -80,24 +85,36 @@ class AutoIntervention():
                     self.pub_intervention.publish(Bool(data=True))
                     self.pub_string.publish(String(data='Accel'))
 
-            # if autoware_speed == 0.0 and carla_speed == 0.0:
-            #     print('avoid stop')
-            #     out_twist.twist_cmd.twist.linear.x = avoid_stop_vel
-            #     self.pub_intervention.publish(Bool(data=False))
             else:
                 self.pub_string.publish(String(data=''))
                 self.pub_intervention.publish(Bool(data=False))
 
         else:
-            # if autoware_speed == 0.0:
-            #     print('avoid stop')
-            #     out_twist.twist_cmd.twist.linear.x = avoid_stop_vel
-            #     self.pub_intervention.publish(Bool(data=False))
+            if autoware_speed > carla_speed * (1.0 + vel_range):
+                print('\nbrake (over speed)')
+                # out_twist.twist_cmd.twist.linear.x = carla_speed
+                # self.pub_string.publish(String(data='Brake'))
 
-            self.pub_string.publish(String(data=''))
+            else:
+                self.pub_string.publish(String(data=''))
+
             self.pub_intervention.publish(Bool(data=False))
 
         sys.stdout.write('\r' + str(out_twist.twist_cmd.twist.angular.z) + ' : ' + str(autoware_speed) + ' : ' + str(carla_speed))
+        self.pub_twist.publish(out_twist)
+
+
+    def initialposeCb(self, msg):
+        print('get initialized')
+        self.carla_speed = None
+        self.setZeroSpeed()
+
+
+    def setZeroSpeed(self):
+        out_twist = VehicleCmd()
+        out_twist.header.stamp = rospy.Time.now()
+        out_twist.twist_cmd.twist.linear.x = 0.0
+        out_twist.twist_cmd.twist.angular.z = 0.0
         self.pub_twist.publish(out_twist)
 
 

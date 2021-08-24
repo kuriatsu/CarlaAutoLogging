@@ -3,10 +3,7 @@ Panels:
     Help Height: 0
     Name: Displays
     Property Tree Widget:
-      Expanded:
-        - /MarkerArray1
-        - /Marker1
-        - /Points No Ground1
+      Expanded: ~
       Splitter Ratio: 0.642276406288147
     Tree Height: 666
   - Class: rviz/Selection
@@ -58,24 +55,24 @@ Visualization Manager:
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /lane_select_marker
-      Name: MarkerArray
+      Name: Lane
       Namespaces:
         closest_waypoints_marker: true
         current_lane_marker: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /line_point_mark
       Name: Marker
       Namespaces:
         {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /detection_range
-      Name: MarkerArray
+      Name: Detection Range
       Namespaces:
         Decelerate Detection: true
         Stop Detection: true
@@ -107,8 +104,8 @@ Visualization Manager:
     - Alpha: 0.5
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 2.2858386039733887
-        Min Value: 1.1717941761016846
+        Max Value: 2.283024787902832
+        Min Value: 1.1671371459960938
         Value: true
       Axis: Z
       Channel Name: intensity
@@ -137,7 +134,7 @@ Visualization Manager:
     - Class: rviz/Marker
       Enabled: true
       Marker Topic: /trajectory_circle_mark
-      Name: Marker
+      Name: Trajectry Circle
       Namespaces:
         trajectory_circle_marker: true
       Queue Size: 100
@@ -145,7 +142,7 @@ Visualization Manager:
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /global_waypoints_mark
-      Name: MarkerArray
+      Name: Global Waypoint
       Namespaces:
         global_change_flag_lane_1: true
         global_lane_waypoint_orientation_marker_1: true
@@ -155,7 +152,7 @@ Visualization Manager:
     - Class: rviz/Marker
       Enabled: true
       Marker Topic: /next_target_mark
-      Name: Marker
+      Name: Target Mark
       Namespaces:
         next_target_marker: true
       Queue Size: 100
@@ -167,17 +164,17 @@ Visualization Manager:
       Enabled: true
       Foreground Alpha: 1
       Foreground Color: 25; 255; 240
-      Name: String
+      Name: Intervention
       Overtake Color Properties: true
       Overtake Position Properties: true
       Topic: /intervention_message
       Value: true
       font: DejaVu Sans Mono
       height: 128
-      left: 42
+      left: 190
       line width: 10
       text size: 23
-      top: 50
+      top: 80
       width: 128
     - Alpha: 1
       Class: rviz/RobotModel
@@ -200,6 +197,65 @@ Visualization Manager:
       Update Interval: 0
       Value: true
       Visual Enabled: true
+    - Class: jsk_rviz_plugin/PieChart
+      Enabled: true
+      Name: Simulate Progress
+      Topic: /simulate_progress
+      Value: true
+      auto color change: false
+      background color: 0; 0; 0
+      backround alpha: 0
+      clockwise rotate direction: true
+      foreground alpha: 0.699999988079071
+      foreground alpha 2: 0.4000000059604645
+      foreground color: 25; 255; 240
+      left: 20
+      max color: 255; 0; 0
+      max value: 100
+      min value: 0
+      show caption: true
+      size: 128
+      text size: 11
+      top: 27
+    - Class: jsk_rviz_plugin/PieChart
+      Enabled: true
+      Name: Mileage Progress
+      Topic: /mileage_progress
+      Value: true
+      auto color change: false
+      background color: 0; 0; 0
+      backround alpha: 0
+      clockwise rotate direction: true
+      foreground alpha: 0.699999988079071
+      foreground alpha 2: 0.4000000059604645
+      foreground color: 193; 125; 17
+      left: 20
+      max color: 255; 0; 0
+      max value: 100
+      min value: 0
+      show caption: true
+      size: 128
+      text size: 11
+      top: 182
+    - Align Bottom: false
+      Background Alpha: 0
+      Background Color: 46; 52; 54
+      Class: jsk_rviz_plugin/String
+      Enabled: true
+      Foreground Alpha: 1
+      Foreground Color: 239; 41; 41
+      Name: Collision
+      Overtake Color Properties: true
+      Overtake Position Properties: true
+      Topic: /collision_message
+      Value: true
+      font: DejaVu Sans Mono
+      height: 128
+      left: 190
+      line width: 10
+      text size: 23
+      top: 120
+      width: 128
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -227,7 +283,7 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Angle: 0
+      Angle: -0.08999999612569809
       Class: rviz/TopDownOrtho
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
@@ -237,11 +293,11 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 10
+      Scale: 2.7861781120300293
       Target Frame: base_link
       Value: TopDownOrtho (rviz)
-      X: 0
-      Y: 0
+      X: -6.215618133544922
+      Y: 11.239167213439941
     Saved: ~
 Window Geometry:
   DecisionMakerPanel:
@@ -262,4 +318,4 @@ Window Geometry:
     collapsed: true
   Width: 1409
   X: 1662
-  Y: 49
+  Y: 0

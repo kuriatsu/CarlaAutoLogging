@@ -11,16 +11,17 @@ import tf
 from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import PointCloud2
 import sensor_msgs.point_cloud2 as pc2
-from std_msgs.msg import Bool, Float32MultiArray
+from std_msgs.msg import Bool, Float32MultiArray, String
 
 class DetectCollision():
 
     def __init__(self):
         self.vehicle_size = None
 
+        self.pub_collision = rospy.Publisher('/is_collided', Bool, queue_size=1)
+        self.pub_string = rospy.Publisher('/collision_message', String, queue_size=1)
         self.sub_points = rospy.Subscriber('/points_no_ground', PointCloud2, self.pointsCb)
         self.sub_vehicle_size = rospy.Subscriber('/ego_vehicle/size', Float32MultiArray, self.vehicleSizeCb)
-        self.pub_collision = rospy.Publisher('/is_collided', Bool, queue_size=1)
 
 
     def pointsCb(self, msg):
@@ -32,14 +33,17 @@ class DetectCollision():
 
         if not judge_points:
             self.pub_collision.publish(Bool(data=False))
+            self.pub_string.publish(String(data=''))
             return
 
         for point in judge_points:
             if -self.vehicle_size[0] < point[0] < self.vehicle_size[0] or -self.vehicle_size[1] < point[1] < self.vehicle_size[1]:
                 self.pub_collision.publish(Bool(data=True))
+                self.pub_string.publish(String(data='Collide'))
                 return
 
         self.pub_collision.publish(Bool(data=False))
+        self.pub_string.publish(String(data=''))
 
 
     def vehicleSizeCb(self, msg):
