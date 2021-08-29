@@ -50,12 +50,12 @@ class PlayCarlaData():
         self.sub_current_pose = rospy.Subscriber('/current_pose', PoseStamped, self.currentPoseCb)
 
         print('initialize')
-        self.init_data(0)
+        self.setFirstData(0)
         self.start_time = rospy.get_time()
         self.timer = rospy.Timer(rospy.Duration(0.1), self.timerCb)
 
 
-    def init_data(self, index):
+    def setFirstData(self, index):
 
         self.setWaypoint(self.waypoint)
         print('set waypoint')
@@ -121,6 +121,9 @@ class PlayCarlaData():
 
 
     def timerCb(self, event):
+        if self.current_pose is None:
+            return
+
         elapsed_time = rospy.get_time() - self.start_time
         next_scenario_time = self.data[self.current_data_index + 1].get('time') - self.data[0].get('time')
         if elapsed_time > next_scenario_time:
@@ -131,6 +134,7 @@ class PlayCarlaData():
         self.pub_simulate_progress.publish(Float32(data=(100 * self.current_data_index/(len(self.data)-1))))
 
         actor_data = self.data[self.current_data_index].get('actors')
+        # self.delOverlapObjects(actor_data, self.waypoint)
         self.pubActorTf(actor_data)
         self.pubActorCloud(actor_data)
         self.pubActorObject(actor_data)
@@ -300,6 +304,32 @@ class PlayCarlaData():
             object_array.objects.append(object)
 
         self.pub_object.publish(object_array)
+
+    # not used (filtered when data collection)
+    def delOverlapObjects(self, actor_list, waypoint):
+        for id, actor in actor_list.items():
+            if actor.get('type').startswith('walker'):
+                continue
+
+            if self.isOverlapOnEgoTrajectry(actor, waypoint):
+                print(actor.get('type'))
+                del actor_list[id]
+
+    # not used (filtered when data collection)
+    def isOverlapOnEgoTrajectry(self, actor, waypoint):
+        for data in waypoint:
+            dist = ((actor.get('pose')[0] - data.get('x'))**2 + (actor.get('pose')[1] - data.get('y'))**2)**0.5
+            if dist > 1.8:
+                continue
+
+            angle = actor.get('pose')[3] - data.get('yaw')
+            # print(dist, angle, actor.get('size')[0])
+            if abs(angle) > 45 and (360.0 - abs(angle)) > 45:
+                continue
+
+            return True
+
+        return False
 
 
     def getClosestWaypoint(self, waypoint, point):

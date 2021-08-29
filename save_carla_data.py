@@ -107,6 +107,7 @@ def getWp(actor):
 
 def getActorData(actor):
     trans = actor.get_transform()
+    # remove dead objects
     if trans.location.x == 0.0 and trans.location.y == 0.0:
         return None
 
@@ -134,6 +135,42 @@ def getActorListData(ego_vehicle, actor_list):
             data[actor.id] = actor_data
 
     return data
+
+
+def filterOverlapObject(time_step_data, waypoint):
+    del_actor_list = []
+    for data in time_step_data:
+        for id, actor in data.get('actors').items():
+            if actor.get('type').startswith('walker') or id == 'ego_vehicle':
+                continue
+            if isOverlapOnEgoTrajectry(actor, waypoint):
+                del_actor_list.append(id)
+
+    del_actor_list = list(set(del_actor_list))
+    print('deleted objects are')
+    print(del_actor_list)
+    deleteOverlapObjects(time_step_data, del_actor_list)
+
+
+def isOverlapOnEgoTrajectry(actor, waypoint):
+    for data in waypoint:
+        dist = ((actor.get('pose')[0] - data.get('x'))**2 + (actor.get('pose')[1] - data.get('y'))**2)**0.5
+        if dist > 1.8:
+            continue
+
+        angle = actor.get('pose')[3] - data.get('yaw')
+        if abs(angle) > 45 and (360.0 - abs(angle)) > 45:
+            continue
+
+        return True
+
+    return False
+
+
+def deleteOverlapObjects(time_step_data, actor_id_list):
+    for data in time_step_data:
+        for id in actor_id_list:
+            del data.get('actors')[id]
 
 
 def driveLoop(world, actor_list, ego_vehicle, dist_step_data, time_step_data, waypoint):
@@ -185,6 +222,13 @@ def driveLoop(world, actor_list, ego_vehicle, dist_step_data, time_step_data, wa
         if recoad_time > 30:
             if travel_dist < 20:
                 print('travel distance is less than 20m in 30sec -> exit')
+                exit()
+            else:
+                return
+
+            start_to_goal_dist = ((waypoint[0].get('x') - waypoint[-1].get('x'))**2 + (waypoint[0].get('y') - waypoint[-1].get('y'))**2)**0.5
+            if start_to_goal_dist < 5:
+                print('route looks looping')
                 exit()
             else:
                 return
@@ -257,6 +301,7 @@ def main():
         with open(dist_step_file, 'wb') as f:
             pickle.dump(dist_step_data, f)
 
+        filterOverlapObject(time_step_data, waypoint)
         time_data = {'data':time_step_data, 'waypoint':waypoint}
         print(len(time_step_data), len(time_step_data[1].get('actors')))
         with open(time_step_file, 'wb') as f:
