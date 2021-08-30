@@ -144,7 +144,8 @@ class PlayCarlaData():
         self.pub_carla_speed.publish(Float32(data=self.waypoint[current_waypoint].get('speed')))
         self.pub_mileage_progress.publish(Float32(data=(100*current_waypoint/(len(self.waypoint)-1))))
 
-        if self.current_data_index == len(self.data)-1:
+        # Judge finish
+        if self.current_data_index == len(self.data)-1 or 100*current_waypoint/(len(self.waypoint)-1) > 98.0:
             rospy.signal_shutdown("finish")
 
 

@@ -7,7 +7,8 @@ import pickle
 import sys
 import numpy as np
 from geometry_msgs.msg import PoseStamped
-from std_msgs.msg import Int32, Bool, Float32MultiArray, String
+from visualization_msgs.msg import Marker
+from std_msgs.msg import Int32, Bool, Float32MultiArray, String, Float32
 from autoware_msgs.msg import VehicleCmd, DetectedObjectArray, DetectedObject
 from sensor_msgs.msg import PointCloud2, PointField
 import sensor_msgs.point_cloud2 as pc2
@@ -23,6 +24,9 @@ class SaveRosData():
         self.is_collided = False
         self.ego_vehicle_size = None
         self.ego_vehicle_type = None
+        self.mileage_progress = 0.0
+        self.simulate_progress = 0.0
+        self.int_object = None
 
         self.out_data_file = out_data_file
         self.time_step_data = []
@@ -31,10 +35,12 @@ class SaveRosData():
         self.sub_current_pose = rospy.Subscriber('/current_pose', PoseStamped, self.currentPoseCb)
         self.sub_vehicle_cmd = rospy.Subscriber('/vehicle_cmd', VehicleCmd, self.vehicleCmdCb)
         self.sub_intervention = rospy.Subscriber('/is_intervened', Bool, self.interventionCb)
+        self.sub_intervention_object = rospy.Subscriber('/obstacle', Marker, self.intObjectCb)
         self.sub_collision = rospy.Subscriber('/is_collided', Bool, self.collisionCb)
         self.sub_ego_vehicle_size = rospy.Subscriber('/ego_vehicle/size', Float32MultiArray, self.sizeCb)
         self.sub_ego_vehicle_type = rospy.Subscriber('/ego_vehicle/type', String, self.typeCb)
-
+        self.sub_mileage_progress = rospy.Subscriber('/mileage_progress', Float32, self.mileageProgressCb)
+        self.sub_simulate_progress = rospy.Subscriber('/simulate_progress', Float32, self.simulateProgressCb)
         rospy.Timer(rospy.Duration(0.5), self.timerCb)
 
 
@@ -59,12 +65,26 @@ class SaveRosData():
             'size' : [actor.dimensions.x, actor.dimensions.y, actor.dimensions.z],
             }
 
+        if self.is_intervened and self.int_object is not None:
+            int_target = [
+                self.int_object.pose.position.x,
+                self.int_object.pose.position.y,
+                self.int_object.pose.position.z,
+                ]
+        else:
+            int_target = []
+
+
         step_data = {
             'time' : rospy.get_time(),
+            'mileage_progress' : self.mileage_progress,
+            'simulate_progress' : self.simulate_progress,
             'actors' : actors_data,
             'intervention' : self.is_intervened,
+            'intervention_target' : int_target,
             'collision' : self.is_collided,
             }
+
         self.time_step_data.append(step_data)
 
 
@@ -80,7 +100,7 @@ class SaveRosData():
 
 
     def objectCb(self, msg):
-        self.objects = msg
+        self.objects = msg.objects
 
 
     def currentPoseCb(self, msg):
@@ -106,6 +126,17 @@ class SaveRosData():
     def typeCb(self, msg):
         self.ego_vehicle_type = msg.data
 
+
+    def mileageProgressCb(self, msg):
+        self.mileage_progress = msg.data
+
+
+    def simulateProgressCb(self, msg):
+        self.simulate_progress = msg.data
+
+
+    def intObjectCb(self, msg):
+        self.int_object = msg
 
 if __name__ == '__main__':
     # print('start')

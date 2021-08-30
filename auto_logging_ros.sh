@@ -32,7 +32,7 @@ for read_file in ${file_list[@]}; do
         python play_data_time.py $read_file &
         play_data_ps=$!
 
-        python save_ros_data_time.py $read_file $out_file &
+        python save_ros_data_time.py $out_file &
         save_data_ps=$!
 
         wait $play_data_ps

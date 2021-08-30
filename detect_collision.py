@@ -37,7 +37,8 @@ class DetectCollision():
             return
 
         for point in judge_points:
-            if -self.vehicle_size[0] < point[0] < self.vehicle_size[0] or -self.vehicle_size[1] < point[1] < self.vehicle_size[1]:
+            if -self.vehicle_size[1] < point[0] < self.vehicle_size[1] and -self.vehicle_size[0] < point[1] < self.vehicle_size[0]:
+                print(self.vehicle_size, point)
                 self.pub_collision.publish(Bool(data=True))
                 self.pub_string.publish(String(data='Collide'))
                 return
