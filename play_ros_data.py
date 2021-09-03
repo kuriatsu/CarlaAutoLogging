@@ -26,7 +26,7 @@ class PlayRosData():
         self.pub_intervention_target = rospy.Publisher('/obstacle', Marker, queue_size = 1)
 
         self.current_data_index = 0
-        self.timer = rospy.Timer(rospy.Duration(0.1), self.timerCb)
+        self.timer = rospy.Timer(rospy.Duration(0.5), self.timerCb)
 
 
     def timerCb(self, event):
@@ -39,7 +39,7 @@ class PlayRosData():
             marker.ns = str(id)
             marker.pose.position = self.listToPoint(actor.get('pose'))
             marker.pose.orientation = self.yawToQuat(actor.get('pose')[3])
-            print(actor.get('pose')[3])
+            # print(actor.get('pose')[3])
             marker.scale = self.sizeToVector(actor.get('size'))
             if id == 'ego_vehicle':
                 marker.color.r = 1.0
@@ -56,6 +56,7 @@ class PlayRosData():
             marker_list.markers.append(marker)
 
         self.pub_object.publish(marker_list)
+        print(self.data[self.current_data_index].get('simulate_progress'))
         self.pub_simulate_progress.publish(self.data[self.current_data_index].get('simulate_progress'))
         self.pub_mileage_progress.publish(self.data[self.current_data_index].get('mileage_progress'))
         if self.data[self.current_data_index].get('collision'):

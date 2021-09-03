@@ -20,7 +20,7 @@ class AutoIntervention():
         self.intervention = bool(int(intervention))
         self.current_pose = None
         self.time_step_data = []
-        self.avoid_deceleration = False
+        self.is_obstacle_on_path = False
         self.carla_speed = None
         self.get_carla_speed = False
 
@@ -39,10 +39,10 @@ class AutoIntervention():
 
     def detectionRangeCb(self, msg):
 
-        self.avoid_deceleration = False
+        self.is_obstacle_on_path = False
         for marker in msg.markers:
             if marker.ns == 'Stop Line' and marker.color.g == 1.0:
-                self.avoid_deceleration = True
+                self.is_obstacle_on_path = True
 
 
     def twistCb(self, msg):
@@ -66,24 +66,15 @@ class AutoIntervention():
 
 
         if self.intervention:
-            if autoware_speed > carla_speed * (1.0 + vel_range):
-                print('\nbrake (over speed)')
-                # out_twist.twist_cmd.twist.linear.x = carla_speed
-                self.pub_intervention.publish(Bool(data=False))
-                # self.pub_string.publish(String(data='Brake'))
+            if autoware_speed > carla_speed * (1.0 + vel_range) and self.is_obstacle_on_path:
+                self.pub_string.publish(String(data='Brake'))
+                out_twist.twist_cmd.twist.linear.x = carla_speed
+                self.pub_intervention.publish(Bool(data=True))
 
-            elif autoware_speed < carla_speed * (1.0 - vel_range) and self.avoid_deceleration:
-                if abs(out_twist.twist_cmd.twist.angular.z) < curve_angular:
-                    print('\nstraight obstacle accel')
-                    self.pub_string.publish(String(data='Accel'))
-                    out_twist.twist_cmd.twist.linear.x = carla_speed
-                    self.pub_intervention.publish(Bool(data=True))
-
-                else:
-                    print('\ncurve obstacle accel')
-                    out_twist.twist_cmd.twist.linear.x = carla_speed
-                    self.pub_intervention.publish(Bool(data=True))
-                    self.pub_string.publish(String(data='Accel'))
+            elif autoware_speed < carla_speed * (1.0 - vel_range) and self.is_obstacle_on_path:
+                self.pub_string.publish(String(data='Accel'))
+                out_twist.twist_cmd.twist.linear.x = carla_speed
+                self.pub_intervention.publish(Bool(data=True))
 
             else:
                 self.pub_string.publish(String(data=''))

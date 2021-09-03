@@ -1,7 +1,7 @@
 #!/bin/bash
 
 file_list="/media/kuriatsu/Samsung_TC2019/carla_drive_data/*time.pickle"
-out_path="/media/kuriatsu/Samsung_TC2019/ros_simulate_data/"
+out_path="/media/kuriatsu/Samsung_TC2019/ros_drive_data/"
 
 intervention_list=("no_int" "int")
 # source /home/kuriatsu/Source/autoware-1.13/install/setup.bash
@@ -12,7 +12,7 @@ for read_file in ${file_list[@]}; do
 
     for mode in ${intervention_list[@]}; do
         buf=${read_file##*/}
-        out_file_name=${buf%dist.pickle}
+        out_file_name=${buf%time.pickle}
         out_file=$out_path$out_file_name$mode".pickle"
 
         echo $out_file
