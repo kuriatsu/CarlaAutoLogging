@@ -20,20 +20,20 @@ play_list=(
 # play rosbag & start aidi
 for play_data in ${play_list[@]}; do
 
-	map=$(echo $play_data | awk -F '[,]' '{print $1}')
-    file_name=$(echo $play_data | awk -F '[,]' '{print $2}')
-	vehicle=$(echo $play_data | awk -F '[,]' '{print $3}')
-	walker=$(echo $play_data | awk -F '[,]' '{print $4}')
-	itr=$(echo $play_data | awk -F '[,]' '{print $5}')
+		map=$(echo $play_data | awk -F '[,]' '{print $1}')
+	  file_name=$(echo $play_data | awk -F '[,]' '{print $2}')
+		vehicle=$(echo $play_data | awk -F '[,]' '{print $3}')
+		walker=$(echo $play_data | awk -F '[,]' '{print $4}')
+		itr=$(echo $play_data | awk -F '[,]' '{print $5}')
     echo map=$map itr=$itr
 
     out_num=0
     while [ $out_num -lt $itr ]; do
         start=$out_num
-        python config.py -m $map
+        python ../carla_tools/config.py -m $map
         sleep 1
         echo spawning npc
-        python spawn_npc.py -n $vehicle -w $walker &
+        python ../carla_tools/spawn_npc.py -n $vehicle -w $walker &
         spawn_np_ps=$!
         sleep 5
         echo start logging

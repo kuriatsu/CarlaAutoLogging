@@ -101,6 +101,6 @@
 
     <include file="$(find vehicle_description)/launch/vehicle_model.launch"/>
 
-    <node pkg="rviz" type="rviz" name="rviz" args="-d $(dirname)/play_data.rviz"/>
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(dirname)/collect_ros_data/play_carla_data.rviz"/>
 
 </launch>

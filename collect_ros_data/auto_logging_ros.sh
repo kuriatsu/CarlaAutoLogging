@@ -2,11 +2,7 @@
 
 file_list="/media/kuriatsu/Samsung_TC2019/carla_drive_data/*time.pickle"
 out_path="/media/kuriatsu/Samsung_TC2019/ros_drive_data/"
-
 intervention_list=("no_int" "int")
-# source /home/kuriatsu/Source/autoware-1.13/install/setup.bash
-# roslaunch autoware.launch &
-# autoware_ps=$!
 
 for read_file in ${file_list[@]}; do
 
@@ -29,11 +25,11 @@ for read_file in ${file_list[@]}; do
         python intervention.py $is_intervention &
         intervention_ps=$!
 
-        python play_data_time.py $read_file &
-        play_data_ps=$!
-
-        python save_ros_data_time.py $out_file &
+        python save_ros_data.py $out_file &
         save_data_ps=$!
+        
+        python play_data.py $read_file &
+        play_data_ps=$!
 
         wait $play_data_ps
 
