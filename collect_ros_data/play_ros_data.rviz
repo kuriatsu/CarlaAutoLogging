@@ -3,7 +3,8 @@ Panels:
     Help Height: 0
     Name: Displays
     Property Tree Widget:
-      Expanded: ~
+      Expanded:
+        - /Marker2
       Splitter Ratio: 0.642276406288147
     Tree Height: 776
   - Class: rviz/Selection
@@ -333,7 +334,76 @@ Visualization Manager:
       Marker Topic: /objects
       Name: MarkerArray
       Namespaces:
+        1156: true
+        1157: true
+        1158: true
+        1159: true
+        1160: true
+        1161: true
+        1162: true
+        1163: true
+        1164: true
+        1167: true
+        1168: true
+        1170: true
+        1171: true
+        1172: true
+        1173: true
+        1174: true
+        1175: true
+        1176: true
+        1177: true
+        1178: true
+        1179: true
+        1180: true
+        1181: true
+        1182: true
+        1183: true
+        1184: true
+        1185: true
+        1186: true
+        1187: true
+        1188: true
+        1189: true
+        1190: true
+        1191: true
+        1192: true
+        1193: true
+        1194: true
+        1195: true
+        1196: true
+        1197: true
+        1198: true
+        1199: true
+        1200: true
+        1201: true
+        1202: true
+        1203: true
+        1204: true
+        1205: true
+        1206: true
+        1207: true
+        1208: true
+        1209: true
+        1210: true
+        1211: true
+        1212: true
+        1213: true
+        1214: true
+        1215: true
+        1216: true
+        1217: true
+        1218: true
+        1219: true
+        1220: true
+        1221: true
+        1222: true
+        1223: true
+        1224: true
+        1225: true
+        1226: true
         1400: true
+        1401: true
         1402: true
         1403: true
         1404: true
@@ -358,7 +428,9 @@ Visualization Manager:
         1424: true
         1425: true
         1426: true
+        1427: true
         1428: true
+        1429: true
         1430: true
         1431: true
         1432: true
@@ -448,6 +520,120 @@ Visualization Manager:
         1517: true
         1518: true
         1519: true
+        1686: true
+        1687: true
+        1688: true
+        1689: true
+        1690: true
+        1691: true
+        1692: true
+        1693: true
+        1694: true
+        1695: true
+        1696: true
+        1697: true
+        1698: true
+        1699: true
+        1700: true
+        1701: true
+        1702: true
+        1703: true
+        1704: true
+        1705: true
+        1706: true
+        1707: true
+        1708: true
+        1709: true
+        1710: true
+        1711: true
+        1712: true
+        1713: true
+        1714: true
+        1715: true
+        1716: true
+        1717: true
+        1718: true
+        1719: true
+        1721: true
+        1722: true
+        1723: true
+        1724: true
+        1725: true
+        1726: true
+        1727: true
+        1728: true
+        1729: true
+        1730: true
+        1731: true
+        1732: true
+        1733: true
+        1734: true
+        1735: true
+        1736: true
+        1737: true
+        1738: true
+        1739: true
+        1740: true
+        1742: true
+        1743: true
+        1744: true
+        1745: true
+        1746: true
+        1747: true
+        1748: true
+        1749: true
+        1750: true
+        1751: true
+        1752: true
+        1753: true
+        1754: true
+        1755: true
+        1756: true
+        1757: true
+        1758: true
+        1759: true
+        1760: true
+        1761: true
+        1762: true
+        1763: true
+        1764: true
+        1765: true
+        1766: true
+        1767: true
+        1768: true
+        1769: true
+        1770: true
+        1771: true
+        1772: true
+        1773: true
+        1774: true
+        1775: true
+        1776: true
+        1777: true
+        1778: true
+        1779: true
+        1780: true
+        1781: true
+        1782: true
+        1783: true
+        1784: true
+        1785: true
+        1786: true
+        1787: true
+        1788: true
+        1789: true
+        1790: true
+        1791: true
+        1792: true
+        1793: true
+        1794: true
+        1795: true
+        1796: true
+        1797: true
+        1798: true
+        1799: true
+        1800: true
+        1801: true
         1944: true
         1945: true
         1946: true
@@ -465,12 +651,16 @@ Visualization Manager:
         1958: true
         1959: true
         1960: true
+        1961: true
+        1962: true
         1963: true
         1964: true
         1965: true
+        1966: true
         1967: true
         1968: true
         1969: true
+        1970: true
         1971: true
         1972: true
         1973: true
@@ -501,6 +691,7 @@ Visualization Manager:
         1998: true
         1999: true
         2000: true
+        2001: true
         2002: true
         2003: true
         2004: true
@@ -538,6 +729,7 @@ Visualization Manager:
         2036: true
         2037: true
         2038: true
+        2039: true
         2040: true
         2041: true
         2043: true
@@ -623,6 +815,114 @@ Visualization Manager:
         2123: true
         2124: true
         2125: true
+        2331: true
+        2332: true
+        2333: true
+        2334: true
+        2335: true
+        2336: true
+        2337: true
+        2338: true
+        2339: true
+        2340: true
+        2341: true
+        2342: true
+        2343: true
+        2344: true
+        2345: true
+        2346: true
+        2347: true
+        2348: true
+        2349: true
+        2350: true
+        2351: true
+        2352: true
+        2353: true
+        2354: true
+        2355: true
+        2356: true
+        2357: true
+        2358: true
+        2359: true
+        2360: true
+        2361: true
+        2362: true
+        2363: true
+        2364: true
+        2365: true
+        2366: true
+        2367: true
+        2368: true
+        2369: true
+        2370: true
+        2371: true
+        2372: true
+        2373: true
+        2374: true
+        2375: true
+        2376: true
+        2377: true
+        2378: true
+        2379: true
+        2380: true
+        2381: true
+        2382: true
+        2383: true
+        2384: true
+        2385: true
+        2386: true
+        2387: true
+        2388: true
+        2389: true
+        2390: true
+        2391: true
+        2392: true
+        2393: true
+        2394: true
+        2395: true
+        2396: true
+        2397: true
+        2398: true
+        2399: true
+        2400: true
+        2401: true
+        2402: true
+        2403: true
+        2404: true
+        2405: true
+        2406: true
+        2407: true
+        2408: true
+        2409: true
+        2410: true
+        2411: true
+        2412: true
+        2413: true
+        2414: true
+        2415: true
+        2416: true
+        2417: true
+        2418: true
+        2419: true
+        2420: true
+        2421: true
+        2422: true
+        2423: true
+        2424: true
+        2425: true
+        2426: true
+        2427: true
+        2428: true
+        2429: true
+        2430: true
+        2431: true
+        2432: true
+        2433: true
+        2434: true
+        2435: true
+        2436: true
+        2437: true
+        2438: true
         2610: true
         2611: true
         2612: true
@@ -659,6 +959,7 @@ Visualization Manager:
         2644: true
         2645: true
         2646: true
+        2647: true
         2648: true
         2649: true
         2650: true
@@ -679,11 +980,13 @@ Visualization Manager:
         2665: true
         2666: true
         2667: true
+        2668: true
         2669: true
         2670: true
         2671: true
         2672: true
         2673: true
+        2674: true
         2675: true
         2676: true
         2677: true
@@ -795,6 +1098,321 @@ Visualization Manager:
         2784: true
         2785: true
         2786: true
+        2980: true
+        2981: true
+        2982: true
+        2983: true
+        2984: true
+        2985: true
+        2986: true
+        2987: true
+        2988: true
+        2989: true
+        2990: true
+        2991: true
+        2992: true
+        2993: true
+        2994: true
+        2995: true
+        2996: true
+        2997: true
+        2998: true
+        2999: true
+        3001: true
+        3002: true
+        3003: true
+        3004: true
+        3005: true
+        3006: true
+        3008: true
+        3009: true
+        3010: true
+        3011: true
+        3012: true
+        3013: true
+        3014: true
+        3016: true
+        3017: true
+        3018: true
+        3019: true
+        3020: true
+        3021: true
+        3022: true
+        3023: true
+        3025: true
+        3026: true
+        3027: true
+        3028: true
+        3029: true
+        3030: true
+        3031: true
+        3032: true
+        3033: true
+        3034: true
+        3035: true
+        3036: true
+        3037: true
+        3038: true
+        3039: true
+        3040: true
+        3041: true
+        3042: true
+        3043: true
+        3044: true
+        3045: true
+        3046: true
+        3047: true
+        3048: true
+        3049: true
+        3050: true
+        3051: true
+        3052: true
+        3053: true
+        3054: true
+        3055: true
+        3056: true
+        3057: true
+        3058: true
+        3059: true
+        3060: true
+        3061: true
+        3062: true
+        3063: true
+        3064: true
+        3065: true
+        3066: true
+        3067: true
+        3068: true
+        3069: true
+        3070: true
+        3071: true
+        3072: true
+        3073: true
+        3074: true
+        3075: true
+        3076: true
+        3077: true
+        3078: true
+        3079: true
+        3080: true
+        3081: true
+        3082: true
+        3083: true
+        3084: true
+        3085: true
+        3086: true
+        3087: true
+        3088: true
+        3089: true
+        3090: true
+        3091: true
+        3092: true
+        3093: true
+        3094: true
+        3095: true
+        3096: true
+        3097: true
+        3098: true
+        3099: true
+        3100: true
+        3101: true
+        3280: true
+        3281: true
+        3282: true
+        3283: true
+        3284: true
+        3285: true
+        3286: true
+        3287: true
+        3288: true
+        3289: true
+        3290: true
+        3291: true
+        3292: true
+        3293: true
+        3294: true
+        3295: true
+        3296: true
+        3297: true
+        3298: true
+        3299: true
+        3300: true
+        3301: true
+        3302: true
+        3303: true
+        3304: true
+        3305: true
+        3306: true
+        3307: true
+        3308: true
+        3309: true
+        3310: true
+        3311: true
+        3312: true
+        3313: true
+        3314: true
+        3315: true
+        3316: true
+        3317: true
+        3318: true
+        3319: true
+        3320: true
+        3321: true
+        3322: true
+        3323: true
+        3324: true
+        3325: true
+        3326: true
+        3327: true
+        3328: true
+        3329: true
+        3330: true
+        3331: true
+        3332: true
+        3333: true
+        3334: true
+        3335: true
+        3336: true
+        3337: true
+        3338: true
+        3339: true
+        3340: true
+        3341: true
+        3342: true
+        3343: true
+        3344: true
+        3345: true
+        3346: true
+        3347: true
+        3348: true
+        3349: true
+        3350: true
+        3351: true
+        3352: true
+        3353: true
+        3354: true
+        3355: true
+        3356: true
+        3357: true
+        3358: true
+        3359: true
+        3360: true
+        3361: true
+        3362: true
+        3363: true
+        3364: true
+        3365: true
+        3366: true
+        3367: true
+        3368: true
+        3369: true
+        3370: true
+        3371: true
+        3372: true
+        3373: true
+        3374: true
+        3375: true
+        3376: true
+        3377: true
+        3378: true
+        3379: true
+        3380: true
+        3381: true
+        3382: true
+        3383: true
+        3384: true
+        3385: true
+        3386: true
+        3387: true
+        3388: true
+        3389: true
+        3390: true
+        3391: true
+        3392: true
+        3393: true
+        3394: true
+        3395: true
+        3396: true
+        3397: true
+        3398: true
+        3399: true
+        3400: true
+        3401: true
+        3402: true
+        3403: true
+        3404: true
+        3405: true
+        3406: true
+        3407: true
+        3408: true
+        3409: true
+        3410: true
+        3411: true
+        3412: true
+        3413: true
+        3414: true
+        3415: true
+        3416: true
+        3417: true
+        3418: true
+        3419: true
+        3420: true
+        3421: true
+        3422: true
+        3423: true
+        3424: true
+        3425: true
+        3426: true
+        3427: true
+        3428: true
+        3429: true
+        3430: true
+        3431: true
+        3432: true
+        3433: true
+        3434: true
+        3435: true
+        3436: true
+        3437: true
+        3438: true
+        3439: true
+        3440: true
+        3441: true
+        3442: true
+        3443: true
+        3444: true
+        3445: true
+        3446: true
+        3447: true
+        3448: true
+        3449: true
+        3450: true
+        3451: true
+        3452: true
+        3453: true
+        3454: true
+        3455: true
+        3456: true
+        3457: true
+        3458: true
+        3459: true
+        3460: true
+        3461: true
+        3462: true
+        3463: true
+        3464: true
+        3465: true
+        3466: true
+        3467: true
+        3468: true
+        3469: true
+        3470: true
+        3471: true
+        3472: true
+        3473: true
+        3474: true
+        3475: true
+        3476: true
         ego_vehicle: true
       Queue Size: 100
       Value: true
@@ -876,6 +1494,14 @@ Visualization Manager:
       text size: 12
       top: 200
       width: 128
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /waypoint_marker
+      Name: Marker
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -913,7 +1539,7 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 3.6095657348632812
+      Scale: 0.7240197658538818
       Target Frame: base_link
       Value: TopDownOrtho (rviz)
       X: 114.74838256835938
@@ -927,7 +1553,7 @@ Window Geometry:
   Height: 1025
   Hide Left Dock: false
   Hide Right Dock: true
-  QMainWindow State: 000000ff00000000fd00000004000000000000018000000345fc020000000ffb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afc0000003d00000345000000c900fffffffa000000020100000003fb0000000a0049006d0061006700650000000000ffffffff0000000000000000fb0000000c00430061006d0065007200610000000000ffffffff0000000000000000fb000000100044006900730070006c0061007900730100000000000001360000015600fffffffb0000000a0049006d006100670065010000028e000000d20000000000000000fb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb000000120049006d006100670065005f0072006100770000000000ffffffff0000000000000000fb0000000c00430061006d006500720061000000024e000001710000000000000000fb000000120049006d00610067006500200052006100770100000421000000160000000000000000fb0000000a0049006d00610067006501000002f4000000cb0000000000000000fb0000000a0049006d006100670065010000056c0000026c0000000000000000fb00000024004400650063006900730069006f006e004d0061006b0065007200500061006e0065006c00000002110000018f0000006e00ffffff00000001000001250000035cfc0200000003fb0000000a0056006900650077007300000000280000035c000000a400fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000001200530065006c0065006300740069006f006e010000025a000000b20000000000000000000000020000073f000000a8fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000007570000005cfc0100000002fb0000000800540069006d0065010000000000000757000002eb00fffffffb0000000800540069006d00650100000000000004500000000000000000000005d10000034500000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd00000004000000000000018000000345fc020000000ffb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afc0000003d00000345000000c900fffffffa000000020100000003fb0000000a0049006d0061006700650000000000ffffffff0000000000000000fb0000000c00430061006d0065007200610000000000ffffffff0000000000000000fb000000100044006900730070006c0061007900730100000000000001360000015600fffffffb0000000a0049006d006100670065010000028e000000d20000000000000000fb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb000000120049006d006100670065005f0072006100770000000000ffffffff0000000000000000fb0000000c00430061006d006500720061000000024e000001710000000000000000fb000000120049006d00610067006500200052006100770100000421000000160000000000000000fb0000000a0049006d00610067006501000002f4000000cb0000000000000000fb0000000a0049006d006100670065010000056c0000026c0000000000000000fb00000024004400650063006900730069006f006e004d0061006b0065007200500061006e0065006c00000002110000018f0000018a00ffffff00000001000001250000035cfc0200000003fb0000000a0056006900650077007300000000280000035c000000a400fffffffb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000001200530065006c0065006300740069006f006e010000025a000000b20000000000000000000000020000073f000000a8fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000007570000005cfc0100000002fb0000000800540069006d0065010000000000000757000002eb00fffffffb0000000800540069006d00650100000000000004500000000000000000000005d10000034500000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:

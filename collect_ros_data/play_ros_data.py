@@ -9,15 +9,18 @@ import tf
 import numpy as np
 
 from visualization_msgs.msg import Marker, MarkerArray
-from std_msgs.msg import Float32, String, Header
+from std_msgs.msg import Float32, String, Header, ColorRGBA
 from geometry_msgs.msg import Point, Vector3, Quaternion
 
 
 class PlayRosData():
     def __init__(self, data_file):
         with open(data_file, 'rb') as f:
-            self.data = pickle.load(f)
+            data = pickle.load(f)
+        self.data = data.get("drive_data")
+        self.waypoint = data.get("waypoint")
 
+        self.pub_waypoint = rospy.Publisher('/waypoint_marker', Marker, queue_size=1, latch=True)
         self.pub_object = rospy.Publisher('/objects', MarkerArray, queue_size = 1)
         self.pub_simulate_progress = rospy.Publisher('/simulate_progress', Float32, queue_size=1)
         self.pub_mileage_progress = rospy.Publisher('/mileage_progress', Float32, queue_size=1)
@@ -25,12 +28,18 @@ class PlayRosData():
         self.pub_intervention = rospy.Publisher('/intervention_message', String, queue_size = 1)
         self.pub_intervention_target = rospy.Publisher('/obstacle', Marker, queue_size = 1)
 
+        self.makeWaypoint(self.waypoint)
         self.current_data_index = 0
-        self.timer = rospy.Timer(rospy.Duration(0.5), self.timerCb)
+        self.timer = rospy.Timer(rospy.Duration(0.1), self.timerCb)
 
 
     def timerCb(self, event):
         marker_list = MarkerArray()
+
+        if len(self.data) <= 1:
+            print("no data contains")
+            rospy.signal_shutdown("no data contains")
+
         for id, actor in self.data[self.current_data_index].get('actors').items():
             marker = Marker(header=Header(stamp=rospy.Time.now(), frame_id='world'))
             marker.type = Marker.CUBE
@@ -39,7 +48,6 @@ class PlayRosData():
             marker.ns = str(id)
             marker.pose.position = self.listToPoint(actor.get('pose'))
             marker.pose.orientation = self.yawToQuat(actor.get('pose')[3])
-            # print(actor.get('pose')[3])
             marker.scale = self.sizeToVector(actor.get('size'))
             if id == 'ego_vehicle':
                 marker.color.r = 1.0
@@ -56,7 +64,6 @@ class PlayRosData():
             marker_list.markers.append(marker)
 
         self.pub_object.publish(marker_list)
-        print(self.data[self.current_data_index].get('simulate_progress'))
         self.pub_simulate_progress.publish(self.data[self.current_data_index].get('simulate_progress'))
         self.pub_mileage_progress.publish(self.data[self.current_data_index].get('mileage_progress'))
         if self.data[self.current_data_index].get('collision'):
@@ -81,7 +88,6 @@ class PlayRosData():
             self.pub_intervention_target.publish(marker)
         else:
             self.pub_intervention.publish(String(data=''))
-
 
         self.current_data_index += 1
         if self.current_data_index == len(self.data)-1:
@@ -110,7 +116,33 @@ class PlayRosData():
         return Quaternion(x=quat[0], y=quat[1], z=quat[2], w=quat[3])
 
 
+    def makeWaypoint(self, waypoint):
+        marker = Marker(header=Header(stamp=rospy.Time.now(), frame_id='world'))
+        marker.type = Marker.SPHERE_LIST
+        marker.action = Marker.ADD
+        marker.id = 0
+        marker.lifetime = rospy.Duration(10.0)
+        marker.ns = "waypoint"
+        marker.scale = Vector3(x=1.0, y=1.0, z=1.0)
+        marker.color.r = 0.0
+        marker.color.g = 1.0
+        marker.color.b = 1.0
+        marker.color.a = 1.0
+        for data in waypoint:
+            point = Point(x=data.get("x"), y=data.get("y"), z=data.get("z"))
+            marker.points.append(point)
+
+        self.pub_waypoint.publish(marker)
+
+
+    def removeMarker(self):
+        marker = Marker(header=Header(stamp=rospy.Time.now(), frame_id='world'))
+        marker.action = Marker.DELETEALL
+        self.pub_waypoint.publish(marker)
+
+
 if __name__ == '__main__':
     rospy.init_node("play_ros_data_node")
     play_ros_data = PlayRosData(sys.argv[1])
     rospy.spin()
+    play_ros_data.removeMarker()

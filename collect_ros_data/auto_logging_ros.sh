@@ -27,8 +27,8 @@ for read_file in ${file_list[@]}; do
 
         python save_ros_data.py $out_file &
         save_data_ps=$!
-        
-        python play_data.py $read_file &
+
+        python play_carla_data.py $read_file &
         play_data_ps=$!
 
         wait $play_data_ps
