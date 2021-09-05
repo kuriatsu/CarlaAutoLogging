@@ -9,7 +9,7 @@ import numpy as np
 from geometry_msgs.msg import PoseStamped
 from visualization_msgs.msg import Marker
 from std_msgs.msg import Int32, Bool, Float32MultiArray, String, Float32
-from autoware_msgs.msg import VehicleCmd, DetectedObjectArray, DetectedObject
+from autoware_msgs.msg import VehicleCmd, DetectedObjectArray, DetectedObject, LaneArray
 from sensor_msgs.msg import PointCloud2, PointField
 import sensor_msgs.point_cloud2 as pc2
 import tf
@@ -29,6 +29,7 @@ class SaveRosData():
         self.int_object = None
 
         self.out_data_file = out_data_file
+        self.waypoint = []
         self.time_step_data = []
 
         self.sub_object = rospy.Subscriber('/detection/contour_tracker/objects', DetectedObjectArray, self.objectCb)
@@ -41,6 +42,7 @@ class SaveRosData():
         self.sub_ego_vehicle_type = rospy.Subscriber('/ego_vehicle/type', String, self.typeCb)
         self.sub_mileage_progress = rospy.Subscriber('/mileage_progress', Float32, self.mileageProgressCb)
         self.sub_simulate_progress = rospy.Subscriber('/simulate_progress', Float32, self.simulateProgressCb)
+        self.sub_waypoint = rospy.Subscriber('/based/lane_waypoints_raw', LaneArray, self.waypointCb)
         rospy.Timer(rospy.Duration(0.5), self.timerCb)
 
 
@@ -95,8 +97,9 @@ class SaveRosData():
 
     def saveData(self):
         print('save_ros_data')
+        out_data = {"waypoint" : self.waypoint, "drive_data" : self.time_step_data}
         with open(self.out_data_file, 'wb') as f:
-            pickle.dump(self.time_step_data, f)
+            pickle.dump(out_data, f)
 
 
     def objectCb(self, msg):
@@ -137,6 +140,19 @@ class SaveRosData():
 
     def intObjectCb(self, msg):
         self.int_object = msg
+
+
+    def waypointCb(self, msg):
+        self.waypoint = []
+        for waypoint in msg.lanes[0].waypoints:
+            buf = {
+            "x" : waypoint.pose.pose.position.x,
+            "y" : waypoint.pose.pose.position.y,
+            "z" : waypoint.pose.pose.position.z,
+            "yaw" : self.quatToYaw(waypoint.pose.pose.orientation),
+            }
+            self.waypoint.append(buf)
+
 
 if __name__ == '__main__':
     print('start')
