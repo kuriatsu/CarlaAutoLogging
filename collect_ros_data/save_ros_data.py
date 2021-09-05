@@ -139,15 +139,15 @@ class SaveRosData():
         self.int_object = msg
 
 if __name__ == '__main__':
-    # print('start')
-    # rospy.init_node('save_ros_data_node')
-    # save_ros_data = SaveRosData(sys.argv[1])
-    # rospy.spin()
-    # save_ros_data.saveData()
-    try:
-        print('start')
-        rospy.init_node('save_ros_data_node')
-        save_ros_data = SaveRosData(sys.argv[1])
-        rospy.spin()
-    finally:
-        save_ros_data.saveData()
+    print('start')
+    rospy.init_node('save_ros_data_node')
+    save_ros_data = SaveRosData(sys.argv[1])
+    rospy.spin()
+    save_ros_data.saveData()
+    # try:
+    #     print('start')
+    #     rospy.init_node('save_ros_data_node')
+    #     save_ros_data = SaveRosData(sys.argv[1])
+    #     rospy.spin()
+    # finally:
+    #     save_ros_data.saveData()
