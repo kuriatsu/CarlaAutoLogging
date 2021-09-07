@@ -45,11 +45,11 @@ class PlayCarlaData():
         self.pub_ego_vehicle_type = rospy.Publisher('/ego_vehicle/type', String, queue_size=1, latch=True)
         self.pub_simulate_progress = rospy.Publisher('/simulate_progress', Float32, queue_size=1)
         self.pub_mileage_progress = rospy.Publisher('/mileage_progress', Float32, queue_size=1)
+        self.pub_mileage = rospy.Publisher('/mileage', Float32, queue_size=1)
         # self.pub_twist = rospy.Publisher('/vehicle_cmd', VehicleCmd, queue_size=1)
         self.sub_config_replanner = rospy.Subscriber('/config/waypoint_replanner', ConfigWaypointReplanner, self.configReplannerCb)
         self.sub_current_pose = rospy.Subscriber('/current_pose', PoseStamped, self.currentPoseCb)
 
-        print('initialize')
         self.setFirstData(0)
         self.start_time = rospy.get_time()
         self.timer = rospy.Timer(rospy.Duration(0.1), self.timerCb)
@@ -58,32 +58,25 @@ class PlayCarlaData():
     def setFirstData(self, index):
 
         self.setWaypoint(self.waypoint)
-        print('set waypoint')
 
         ego_vehicle_info = self.data[index].get('actors').get('ego_vehicle')
         self.pub_ego_vehicle_size.publish(Float32MultiArray(data=ego_vehicle_info.get('size')))
         self.pub_ego_vehicle_type.publish(String(data=ego_vehicle_info.get('type')))
-        print('set ego_vehicle info')
 
         actor_data = self.data[index].get('actors')
         result = False
         while not result:
             self.pubActorTf(actor_data)
-            print('pub TF')
             result = self.pubActorCloud(actor_data)
-        print('pub cloud')
 
         self.pubActorObject(actor_data)
-        print('pub object')
 
         # self.setZeroSpeed()
         self.initialPose(self.data[index])
         # self.setZeroSpeed()
-        print('pub initialpose')
 
 
     def initialPose(self, data):
-        print('initialpose')
         waypoint = data.get('actors').get('ego_vehicle').get('pose')[0:3]
         quat = self.yawToQuat(data.get('actors').get('ego_vehicle').get('pose')[3])
         pose = waypoint[0:3] + [quat.x, quat.y, quat.z, quat.w]
@@ -129,8 +122,8 @@ class PlayCarlaData():
         if elapsed_time > next_scenario_time:
             self.current_data_index += 1
 
-        sys.stdout.write('\r' + str(self.current_data_index) + '/' + str(len(self.data)))
-        sys.stdout.flush()
+        # sys.stdout.write('\r' + str(self.current_data_index) + '/' + str(len(self.data)))
+        # sys.stdout.flush()
         self.pub_simulate_progress.publish(Float32(data=(100 * self.current_data_index/(len(self.data)-1))))
 
         actor_data = self.data[self.current_data_index].get('actors')
@@ -143,9 +136,10 @@ class PlayCarlaData():
         self.pubConfigReplanner(self.waypoint[current_waypoint].get('speed_limit'))
         self.pub_carla_speed.publish(Float32(data=self.waypoint[current_waypoint].get('speed')))
         self.pub_mileage_progress.publish(Float32(data=(100*current_waypoint/(len(self.waypoint)-1))))
+        self.pub_mileage.publish(Float32(data=(current_waypoint)))
 
         # Judge finish
-        if self.current_data_index == len(self.data)-1 or 100*current_waypoint/(len(self.waypoint)-1) > 98.0:
+        if self.current_data_index == len(self.data)-1 or 100*current_waypoint/(len(self.waypoint)-1) >= 95.0:
             rospy.signal_shutdown("finish")
 
 

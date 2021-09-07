@@ -219,7 +219,7 @@ def driveLoop(world, actor_list, ego_vehicle, dist_step_data, time_step_data, wa
         sys.stdout.write('\r' + str(travel_dist))
         sys.stdout.flush()
 
-        if recoad_time > 30:
+        if recoad_time > 60:
             if travel_dist < 20:
                 print('travel distance is less than 20m in 30sec -> exit')
                 exit()

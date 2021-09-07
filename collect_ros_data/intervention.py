@@ -81,22 +81,14 @@ class AutoIntervention():
                 self.pub_intervention.publish(Bool(data=False))
 
         else:
-            if autoware_speed > carla_speed * (1.0 + vel_range):
-                print('\nbrake (over speed)')
-                # out_twist.twist_cmd.twist.linear.x = carla_speed
-                # self.pub_string.publish(String(data='Brake'))
-
-            else:
-                self.pub_string.publish(String(data=''))
-
+            self.pub_string.publish(String(data=''))
             self.pub_intervention.publish(Bool(data=False))
 
-        sys.stdout.write('\r' + str(out_twist.twist_cmd.twist.angular.z) + ' : ' + str(autoware_speed) + ' : ' + str(carla_speed))
+        # sys.stdout.write('\r' + str(out_twist.twist_cmd.twist.angular.z) + ' : ' + str(autoware_speed) + ' : ' + str(carla_speed))
         self.pub_twist.publish(out_twist)
 
 
     def initialposeCb(self, msg):
-        print('get initialized')
         self.carla_speed = None
         self.setZeroSpeed()
 

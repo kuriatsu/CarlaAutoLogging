@@ -25,6 +25,7 @@ class SaveRosData():
         self.ego_vehicle_size = None
         self.ego_vehicle_type = None
         self.mileage_progress = 0.0
+        self.mileage = 0.0
         self.simulate_progress = 0.0
         self.int_object = None
 
@@ -41,6 +42,7 @@ class SaveRosData():
         self.sub_ego_vehicle_size = rospy.Subscriber('/ego_vehicle/size', Float32MultiArray, self.sizeCb)
         self.sub_ego_vehicle_type = rospy.Subscriber('/ego_vehicle/type', String, self.typeCb)
         self.sub_mileage_progress = rospy.Subscriber('/mileage_progress', Float32, self.mileageProgressCb)
+        self.sub_mileage = rospy.Subscriber('/mileage', Float32, self.mileageCb)
         self.sub_simulate_progress = rospy.Subscriber('/simulate_progress', Float32, self.simulateProgressCb)
         self.sub_waypoint = rospy.Subscriber('/based/lane_waypoints_raw', LaneArray, self.waypointCb)
         rospy.Timer(rospy.Duration(0.5), self.timerCb)
@@ -79,6 +81,7 @@ class SaveRosData():
 
         step_data = {
             'time' : rospy.get_time(),
+            'mileage' : self.mileage,
             'mileage_progress' : self.mileage_progress,
             'simulate_progress' : self.simulate_progress,
             'actors' : actors_data,
@@ -134,6 +137,10 @@ class SaveRosData():
         self.mileage_progress = msg.data
 
 
+    def mileageCb(self, msg):
+        self.mileage = msg.data
+
+
     def simulateProgressCb(self, msg):
         self.simulate_progress = msg.data
 
@@ -155,15 +162,15 @@ class SaveRosData():
 
 
 if __name__ == '__main__':
-    print('start')
-    rospy.init_node('save_ros_data_node')
-    save_ros_data = SaveRosData(sys.argv[1])
-    rospy.spin()
-    save_ros_data.saveData()
-    # try:
-    #     print('start')
-    #     rospy.init_node('save_ros_data_node')
-    #     save_ros_data = SaveRosData(sys.argv[1])
-    #     rospy.spin()
-    # finally:
-    #     save_ros_data.saveData()
+    # print('start')
+    # rospy.init_node('save_ros_data_node')
+    # save_ros_data = SaveRosData(sys.argv[1])
+    # rospy.spin()
+    # save_ros_data.saveData()
+    try:
+        print('start')
+        rospy.init_node('save_ros_data_node')
+        save_ros_data = SaveRosData(sys.argv[1])
+        rospy.spin()
+    finally:
+        save_ros_data.saveData()

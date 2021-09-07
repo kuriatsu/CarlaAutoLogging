@@ -12,28 +12,36 @@ for read_file in ${file_list[@]}; do
         out_file=$out_path$out_file_name$mode".pickle"
 
         echo $out_file
+        status=0
 
-        python detect_collision.py &
-        collision_ps=$!
+        while [ $status -eq 0 ]; do
 
-        if [ $mode = "int" ]; then
-            is_intervention=1
-        else
-            is_intervention=0
-        fi
+            python detect_collision.py &
+            collision_ps=$!
 
-        python intervention.py $is_intervention &
-        intervention_ps=$!
+            if [ $mode = "int" ]; then
+                is_intervention=1
+            else
+                is_intervention=0
+            fi
 
-        python save_ros_data.py $out_file &
-        save_data_ps=$!
+            python intervention.py $is_intervention &
+            intervention_ps=$!
 
-        python play_carla_data.py $read_file &
-        play_data_ps=$!
+            python save_ros_data.py $out_file &
+            save_data_ps=$!
 
-        wait $play_data_ps
+            python play_carla_data.py $read_file &
+            play_data_ps=$!
 
-        kill -2 $intervention_ps $save_data_ps $collision_ps
+            wait $play_data_ps
 
+            kill -2 $intervention_ps $save_data_ps $collision_ps
+
+            sleep 5
+            python check_file.py $out_file
+            status=$?
+            echo "status: " $status
+        done
     done
 done

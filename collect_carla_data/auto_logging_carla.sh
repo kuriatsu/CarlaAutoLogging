@@ -20,11 +20,11 @@ play_list=(
 # play rosbag & start aidi
 for play_data in ${play_list[@]}; do
 
-		map=$(echo $play_data | awk -F '[,]' '{print $1}')
-	  file_name=$(echo $play_data | awk -F '[,]' '{print $2}')
-		vehicle=$(echo $play_data | awk -F '[,]' '{print $3}')
-		walker=$(echo $play_data | awk -F '[,]' '{print $4}')
-		itr=$(echo $play_data | awk -F '[,]' '{print $5}')
+	map=$(echo $play_data | awk -F '[,]' '{print $1}')
+    file_name=$(echo $play_data | awk -F '[,]' '{print $2}')
+	vehicle=$(echo $play_data | awk -F '[,]' '{print $3}')
+	walker=$(echo $play_data | awk -F '[,]' '{print $4}')
+	itr=$(echo $play_data | awk -F '[,]' '{print $5}')
     echo map=$map itr=$itr
 
     out_num=0
