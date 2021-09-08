@@ -52,7 +52,7 @@ class PlayCarlaData():
 
         self.setFirstData(0)
         self.start_time = rospy.get_time()
-        self.timer = rospy.Timer(rospy.Duration(0.1), self.timerCb)
+        self.timer = rospy.Timer(rospy.Duration(0.5), self.timerCb)
 
 
     def setFirstData(self, index):
