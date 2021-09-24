@@ -34,6 +34,7 @@ class PlayCarlaData():
         self.current_data_index = 0
         self.current_pose = None
         self.start_time = None
+        self.start_intervention_time = 33.0
 
         self.pub_cloud = rospy.Publisher('/points_no_ground', PointCloud2, queue_size=5)
         self.pub_object = rospy.Publisher('/detection/contour_tracker/objects', DetectedObjectArray, queue_size=5)
@@ -46,6 +47,8 @@ class PlayCarlaData():
         self.pub_simulate_progress = rospy.Publisher('/simulate_progress', Float32, queue_size=1)
         self.pub_mileage_progress = rospy.Publisher('/mileage_progress', Float32, queue_size=1)
         self.pub_mileage = rospy.Publisher('/mileage', Float32, queue_size=1)
+        self.pub_start_intervention = rospy.Publisher('/start_intervention', Bool, queue_size=1)
+
         # self.pub_twist = rospy.Publisher('/vehicle_cmd', VehicleCmd, queue_size=1)
         self.sub_config_replanner = rospy.Subscriber('/config/waypoint_replanner', ConfigWaypointReplanner, self.configReplannerCb)
         self.sub_current_pose = rospy.Subscriber('/current_pose', PoseStamped, self.currentPoseCb)
@@ -71,9 +74,7 @@ class PlayCarlaData():
 
         self.pubActorObject(actor_data)
 
-        # self.setZeroSpeed()
         self.initialPose(self.data[index])
-        # self.setZeroSpeed()
 
 
     def initialPose(self, data):
@@ -119,15 +120,13 @@ class PlayCarlaData():
 
         elapsed_time = rospy.get_time() - self.start_time
         next_scenario_time = self.data[self.current_data_index + 1].get('time') - self.data[0].get('time')
+        if elapsed_time > self.start_intervention_time:
+            self.pub_start_intervention(True)
+
         if elapsed_time > next_scenario_time:
             self.current_data_index += 1
-
-        # sys.stdout.write('\r' + str(self.current_data_index) + '/' + str(len(self.data)))
-        # sys.stdout.flush()
         self.pub_simulate_progress.publish(Float32(data=(100 * self.current_data_index/(len(self.data)-1))))
-
         actor_data = self.data[self.current_data_index].get('actors')
-        # self.delOverlapObjects(actor_data, self.waypoint)
         self.pubActorTf(actor_data)
         self.pubActorCloud(actor_data)
         self.pubActorObject(actor_data)

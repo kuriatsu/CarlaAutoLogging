@@ -17,12 +17,13 @@ import tf
 class AutoIntervention():
 
     def __init__(self, intervention):
-        self.intervention = bool(int(intervention))
+        self.enable_intervention = bool(int(intervention))
         self.current_pose = None
         self.time_step_data = []
         self.is_obstacle_on_path = False
         self.carla_speed = None
         self.get_carla_speed = False
+        self.start_intervention = False
 
         self.pub_twist = rospy.Publisher('/vehicle_cmd', VehicleCmd, queue_size=1)
         self.pub_intervention = rospy.Publisher('/is_intervened', Bool, queue_size=1)
@@ -31,6 +32,7 @@ class AutoIntervention():
         self.sub_detection_range = rospy.Subscriber('/detection_range', MarkerArray, self.detectionRangeCb)
         self.sub_twist = rospy.Subscriber('/twist_raw', TwistStamped, self.twistCb)
         self.sub_initial_pose = rospy.Subscriber('/initialpose', PoseWithCovarianceStamped, self.initialposeCb)
+        self.sub_start_intervention = rospy.Subscriber('/start_intervention', Bool, self.startInterventionCb)
 
 
     def carlaSpeedCb(self, msg):
@@ -43,6 +45,9 @@ class AutoIntervention():
         for marker in msg.markers:
             if marker.ns == 'Stop Line' and marker.color.g == 1.0:
                 self.is_obstacle_on_path = True
+
+    def startInterventionCb(self, data):
+        self.start_intervention = data
 
 
     def twistCb(self, msg):
@@ -65,7 +70,7 @@ class AutoIntervention():
         out_twist.twist_cmd.twist.angular.z *= angular_multiply_rate
 
 
-        if self.intervention:
+        if self.enable_intervention and self.start_intervention:
             if autoware_speed > carla_speed * (1.0 + vel_range) and self.is_obstacle_on_path:
                 self.pub_string.publish(String(data='Brake'))
                 out_twist.twist_cmd.twist.linear.x = carla_speed
@@ -99,6 +104,7 @@ class AutoIntervention():
         out_twist.twist_cmd.twist.linear.x = 0.0
         out_twist.twist_cmd.twist.angular.z = 0.0
         self.pub_twist.publish(out_twist)
+
 
 
 if __name__ == '__main__':
