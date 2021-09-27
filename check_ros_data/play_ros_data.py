@@ -40,58 +40,62 @@ class PlayRosData():
             print("no data contains")
             rospy.signal_shutdown("no data contains")
 
-        for id, actor in self.data[self.current_data_index].get('actors').items():
-            marker = Marker(header=Header(stamp=rospy.Time.now(), frame_id='world'))
-            marker.type = Marker.CUBE
-            marker.action = Marker.ADD
-            marker.lifetime = rospy.Duration(0.5)
-            marker.ns = str(id)
-            marker.pose.position = self.listToPoint(actor.get('pose'))
-            marker.pose.orientation = self.yawToQuat(actor.get('pose')[3])
-            marker.scale = self.sizeToVector(actor.get('size'))
-            if id == 'ego_vehicle':
-                marker.color.r = 1.0
-                marker.color.g = 0.0
-                marker.color.b = 0.0
-                marker.color.a = 1.0
+        try:
+            for id, actor in self.data[self.current_data_index].get('actors').items():
+                marker = Marker(header=Header(stamp=rospy.Time.now(), frame_id='world'))
+                marker.type = Marker.CUBE
+                marker.action = Marker.ADD
+                marker.lifetime = rospy.Duration(0.5)
+                marker.ns = str(id)
+                marker.pose.position = self.listToPoint(actor.get('pose'))
+                marker.pose.orientation = self.yawToQuat(actor.get('pose')[3])
+                marker.scale = self.sizeToVector(actor.get('size'))
+                if id == 'ego_vehicle':
+                    marker.color.r = 1.0
+                    marker.color.g = 0.0
+                    marker.color.b = 0.0
+                    marker.color.a = 1.0
+                else:
+                    marker.color.r = 0.0
+                    marker.color.g = 1.0
+                    marker.color.b = 0.0
+                    marker.color.a = 1.0
+
+                # marker.frame_locked = True
+                marker_list.markers.append(marker)
+
+            self.pub_object.publish(marker_list)
+            self.pub_simulate_progress.publish(self.data[self.current_data_index].get('simulate_progress'))
+            self.pub_mileage_progress.publish(self.data[self.current_data_index].get('mileage_progress'))
+            if self.data[self.current_data_index].get('collision'):
+                self.pub_collision.publish(String(data='collide'))
             else:
-                marker.color.r = 0.0
+                self.pub_collision.publish(String(data=''))
+
+            if self.data[self.current_data_index].get('intervention'):
+                self.pub_intervention.publish(String(data='accel'))
+                marker = Marker(header=Header(stamp=rospy.Time.now(), frame_id='world'))
+                marker.type = Marker.CUBE
+                marker.action = Marker.ADD
+                marker.pose.position = self.listToPoint(self.data[self.current_data_index].get('intervention_target'))
+                marker.pose.orientation = self.yawToQuat(0.0)
+                marker.scale = self.sizeToVector([1.0, 1.0, 1.0])
+                marker.color.r = 1.0
                 marker.color.g = 1.0
                 marker.color.b = 0.0
                 marker.color.a = 1.0
+                marker.lifetime = rospy.Duration(0.5)
+                marker.frame_locked = False
+                self.pub_intervention_target.publish(marker)
+            else:
+                self.pub_intervention.publish(String(data=''))
 
-            # marker.frame_locked = True
-            marker_list.markers.append(marker)
+            self.current_data_index += 1
+            if self.current_data_index == len(self.data)-1:
+                rospy.signal_shutdown("finish")
 
-        self.pub_object.publish(marker_list)
-        self.pub_simulate_progress.publish(self.data[self.current_data_index].get('simulate_progress'))
-        self.pub_mileage_progress.publish(self.data[self.current_data_index].get('mileage_progress'))
-        if self.data[self.current_data_index].get('collision'):
-            self.pub_collision.publish(String(data='collide'))
-        else:
-            self.pub_collision.publish(String(data=''))
-
-        if self.data[self.current_data_index].get('intervention'):
-            self.pub_intervention.publish(String(data='accel'))
-            marker = Marker(header=Header(stamp=rospy.Time.now(), frame_id='world'))
-            marker.type = Marker.CUBE
-            marker.action = Marker.ADD
-            marker.pose.position = self.listToPoint(self.data[self.current_data_index].get('intervention_target'))
-            marker.pose.orientation = self.yawToQuat(0.0)
-            marker.scale = self.sizeToVector([1.0, 1.0, 1.0])
-            marker.color.r = 1.0
-            marker.color.g = 1.0
-            marker.color.b = 0.0
-            marker.color.a = 1.0
-            marker.lifetime = rospy.Duration(0.5)
-            marker.frame_locked = False
-            self.pub_intervention_target.publish(marker)
-        else:
-            self.pub_intervention.publish(String(data=''))
-
-        self.current_data_index += 1
-        if self.current_data_index == len(self.data)-1:
-            rospy.signal_shutdown("finish")
+        except Exception as e:
+            print(e)
 
 
     def listToPoint(self, list):
