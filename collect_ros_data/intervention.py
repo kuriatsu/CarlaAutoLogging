@@ -31,8 +31,11 @@ class AutoIntervention():
         self.allow_intervention = False
         self.intervention_gap = 1.0
         self.current_mileage = 0.0
+        self.progress_as_succeed = 90.0
+        self.last_obstacle_time = None
+        self.obstacle_detection_gap = 0.5
 
-        f = open("intervention.txt", "r")
+        f = open("last_int_distance.txt", "r")
         self.start_intervention_mileage = float(f.read())
         f.close()
 
@@ -54,15 +57,20 @@ class AutoIntervention():
     def detectionRangeCb(self, msg):
 
         self.is_obstacle_on_path = False
-        for marker in msg.markers:
-            if marker.ns == 'Stop Line' and marker.color.g == 1.0:
+        if self.last_obstacle_time is not None:
+            if rospy.Time.now() - self.last_obstacle_time < rospy.Duration(self.obstacle_detection_gap):
                 self.is_obstacle_on_path = True
 
-    def simulateProgressCb(self, data):
-        self.current_progress = data
+        for marker in msg.markers:
+            if marker.ns == 'Stop Line' and marker.color.g == 1.0: # for deceleration object
+                self.is_obstacle_on_path = True
+                self.last_obstacle_time = rospy.Time.now()
 
-    def mileageProgressCb(self, data):
-        self.current_mileage = data
+    def simulateProgressCb(self, msg):
+        self.current_progress = msg.data
+
+    def mileageProgressCb(self, msg):
+        self.current_mileage = msg.data
 
     def twistCb(self, msg):
 
@@ -79,12 +87,13 @@ class AutoIntervention():
         out_twist = VehicleCmd()
         out_twist.twist_cmd.twist = msg.twist
         # out_twist.twist_cmd.twist.angular.z *= angular_multiply_rate
-
         if self.last_intervention_time is not None:
-            if self.last_intervention_time - rospy.Time.now() > rospy.Duration(self.intervention_gap):
+            if rospy.Time.now() - self.last_intervention_time > rospy.Duration(self.intervention_gap):
                 self.intervention_count += 1
+                self.last_intervention_time = None
 
-        self.allow_intervention = (self.current_progress > self.start_intervention_time and self.current_mileage > self.start_intervention_mileage and self.intervention_count <= self.max_intervention_count)
+        self.allow_intervention = (self.is_intervention_trial and self.current_progress > self.start_intervention_time and self.current_mileage > self.start_intervention_mileage and self.intervention_count < self.max_intervention_count)
+        print("start_time: {}, start_mileage:{}, count{}".format(self.start_intervention_time, self.start_intervention_mileage, self.intervention_count))
 
         if self.allow_intervention:
             if autoware_speed > carla_speed * (1.0 + vel_eps) and self.is_obstacle_on_path:
@@ -125,17 +134,20 @@ class AutoIntervention():
         out_twist.twist_cmd.twist.angular.z = 0.0
         self.pub_twist.publish(out_twist)
 
-    def __del__(self):
+    def log_int_mileage(self):
         if self.last_intervention_mileage is not None:
             print("write last intervention mileage")
-            with open("intervention.txt", "w") as f:
+            with open("last_int_distance.txt", "w") as f:
                 f.write(str(self.last_intervention_mileage))
+
+        elif self.current_progress > self.progress_as_succeed:
+            print("no intervention and finished")
+            with open("last_int_distance.txt", "w") as f:
+                f.write(str(0.0))
 
 
 if __name__ == '__main__':
-    try:
-        rospy.init_node('auto_intervention_node')
-        auto_intervention = AutoIntervention(sys.argv[1])
-        rospy.spin()
-    finally:
-        del auto_intervention
+    rospy.init_node('auto_intervention_node')
+    auto_intervention = AutoIntervention(sys.argv[1])
+    rospy.spin()
+    auto_intervention.log_int_mileage()
