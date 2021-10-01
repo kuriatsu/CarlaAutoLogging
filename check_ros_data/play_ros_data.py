@@ -27,10 +27,11 @@ class PlayRosData():
         self.pub_collision = rospy.Publisher('/collision_message', String, queue_size = 1)
         self.pub_intervention = rospy.Publisher('/intervention_message', String, queue_size = 1)
         self.pub_intervention_target = rospy.Publisher('/obstacle', Marker, queue_size = 1)
+        self.pub_time = rospy.Publisher('elapsed_time', String, queue_size=1)
 
         self.makeWaypoint(self.waypoint)
         self.current_data_index = 0
-        self.timer = rospy.Timer(rospy.Duration(0.1), self.timerCb)
+        self.timer = rospy.Timer(rospy.Duration(0.5), self.timerCb)
 
 
     def timerCb(self, event):
@@ -38,7 +39,7 @@ class PlayRosData():
 
         if len(self.data) <= 1:
             print("no data contains")
-            rospy.signal_shutdown("no data contains")
+            rospy.signal_shutdown("no drive data contains")
 
         try:
             for id, actor in self.data[self.current_data_index].get('actors').items():
@@ -67,6 +68,8 @@ class PlayRosData():
             self.pub_object.publish(marker_list)
             self.pub_simulate_progress.publish(self.data[self.current_data_index].get('simulate_progress'))
             self.pub_mileage_progress.publish(self.data[self.current_data_index].get('mileage_progress'))
+            self.pub_time.publish(str(self.data[self.current_data_index].get('time') - self.data[0].get('time')))
+
             if self.data[self.current_data_index].get('collision'):
                 self.pub_collision.publish(String(data='collide'))
             else:
@@ -96,6 +99,7 @@ class PlayRosData():
 
         except Exception as e:
             print(e)
+            return
 
 
     def listToPoint(self, list):
@@ -125,7 +129,7 @@ class PlayRosData():
         marker.type = Marker.SPHERE_LIST
         marker.action = Marker.ADD
         marker.id = 0
-        marker.lifetime = rospy.Duration(10.0)
+        marker.lifetime = rospy.Duration(0)
         marker.ns = "waypoint"
         marker.scale = Vector3(x=1.0, y=1.0, z=1.0)
         marker.color.r = 0.0

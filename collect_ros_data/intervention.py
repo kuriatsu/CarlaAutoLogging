@@ -49,7 +49,6 @@ class AutoIntervention():
         self.sub_simulate_progress = rospy.Subscriber('/simulate_progress', Float32, self.simulateProgressCb)
         self.sub_mileage_progress = rospy.Subscriber('/mileage_progress', Float32, self.mileageProgressCb)
 
-
     def carlaSpeedCb(self, msg):
         self.carla_speed = msg.data
 
@@ -79,14 +78,13 @@ class AutoIntervention():
             return
 
         vel_eps = 0.3 # allow rate
-        # angular_multiply_rate = 4.0
 
         carla_speed = self.carla_speed
         autoware_speed = msg.twist.linear.x
 
         out_twist = VehicleCmd()
         out_twist.twist_cmd.twist = msg.twist
-        # out_twist.twist_cmd.twist.angular.z *= angular_multiply_rate
+
         if self.last_intervention_time is not None:
             if rospy.Time.now() - self.last_intervention_time > rospy.Duration(self.intervention_gap):
                 self.intervention_count += 1

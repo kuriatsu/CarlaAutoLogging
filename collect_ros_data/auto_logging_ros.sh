@@ -41,7 +41,7 @@ for read_file in ${file_list[@]}; do
     status=1
 
     while [ $status -ne 0 ]; do
-        out_file=$out_path$out_file_name"_noint.pickle"
+        out_file=$out_path$out_file_name"noint.pickle"
         echo $out_file
 
         python detect_collision.py &

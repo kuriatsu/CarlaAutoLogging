@@ -78,7 +78,7 @@ class SaveRosData():
         else:
             int_target = []
 
-
+        print("save node intervention: ", self.is_intervened)
         step_data = {
             'time' : rospy.get_time(),
             'mileage' : self.mileage,
