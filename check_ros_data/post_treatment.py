@@ -26,15 +26,21 @@ if __name__ == "__main__":
         if start_index is None and data.get('drive_data')[first_intervention_index].get('time') - drive_data.get('time') < 33.0:
             start_index = i
 
-        if start_index is not None and drive_data.get('time') - data.get('drive_data')[start_index].get('time') > 50.0:
+        if start_index is not None and drive_data.get('time') - data.get('drive_data')[start_index].get('time') > 45.0:
             end_index = i
             break
 
 
-    if start_index is None or end_index is None:
-        print("intervention segment is shorter than 10sec")
+    if start_index is None:
+        print("can't get pre 33 drive")
+        print(first_intervention_index)
         exit()
-
+    elif end_index is None:
+        print("can't keep segment longer than 50sec")
+        print(drive_data.get('time') - data.get('drive_data')[start_index].get('time'))
+        exit()
+        
+    # save data
     out_intervention_data = {'waypoint' : data.get('waypoint')}
     out_intervention_data['drive_data'] = data["drive_data"][start_index:end_index]
 
@@ -43,6 +49,7 @@ if __name__ == "__main__":
     out_dir = fullpath[0].rsplit('/', 1)[0] + '/extracted_data'
     out_intervention_filename = "{}/{}_{}_{}_int_{}".format(out_dir, filename_split[0], filename_split[1], filename_split[2], filename_split[4])
 
+    # make no intervention data
     with open(sys.argv[2], 'rb') as f:
         no_int_data = pickle.load(f)
 
@@ -66,7 +73,7 @@ if __name__ == "__main__":
     out_nointervention_filename = "{}/{}_{}_{}_noint_{}".format(out_dir, filename_split[0], filename_split[1], filename_split[2], filename_split[4])
     print(out_nointervention_data.get('drive_data')[-1].get('time') - out_nointervention_data.get('drive_data')[0].get('time'))
 
-
+    # shift mileage and simulate progress value
     for drive_data in out_intervention_data.get('drive_data'):
         start_mileage = out_intervention_data['drive_data'][0]['mileage_progress']
         total_mileage = out_intervention_data['drive_data'][-1]['mileage_progress'] - out_intervention_data['drive_data'][0]['mileage_progress']

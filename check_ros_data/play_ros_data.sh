@@ -1,6 +1,6 @@
 #!/bin/bash
 
-file_list="/media/kuriatsu/Samsung_TC2019/ros_drive_data/*.pickle"
+file_list="/media/kuriatsu/Samsung_TC2019/extracted_data/*.pickle"
 
 roscore &
 roscore_ps=&!

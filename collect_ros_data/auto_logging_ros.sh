@@ -9,11 +9,12 @@ for read_file in ${file_list[@]}; do
     out_file_name=${buf%time.pickle}
     echo 0 > last_int_distance.txt
     status=1
+    itr=0
+    rm intervened_target.pickle
 
     while [ $status -ne 0 ]; do
         echo $status
-        int_start_dist=$(cat last_int_distance.txt)
-        out_file=$out_path$out_file_name"int_"$int_start_dist".pickle"
+        out_file=$out_path$out_file_name"int_"$itr".pickle"
         echo $out_file
 
         python detect_collision.py &
@@ -36,6 +37,7 @@ for read_file in ${file_list[@]}; do
         python check_file.py $out_file
         status=$?
         echo "status: " $status
+        itr=$(($itr+1))
     done
 
     status=1

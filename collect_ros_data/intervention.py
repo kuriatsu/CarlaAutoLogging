@@ -33,19 +33,24 @@ class AutoIntervention():
 
         # remove detection noise
         self.last_obstacle_time = None
-        self.obstacle_detection_gap = 0.5
+        self.obstacle_detection_gap = 1.0
 
         # intervention control
         self.start_intervention_time = 33.0
         self.current_progress = 0.0
         self.max_intervention_count = 1
         self.objects = None
-        self.intervention_target = []
+        self.intervened_target = []
         self.obstacle = None
 
-        f = open("intervention_target.txt", "r")
-        self.intervention_target_list = f.read().split(',')
-        f.close()
+        try:
+            f = open("./intervened_target.pickle", "rb")
+            buf = pickle.load(f)
+            self.no_intervention_list = buf.get("last_list") + buf.get("no_list")
+            f.close()
+        except Exception as e:
+            print(e)
+            self.no_intervention_list = []
 
         self.pub_twist = rospy.Publisher('/vehicle_cmd', VehicleCmd, queue_size=1)
         self.pub_intervention = rospy.Publisher('/is_intervened', Bool, queue_size=1)
@@ -80,7 +85,7 @@ class AutoIntervention():
         if self.objects is None:
             return
 
-        self.obstacle = findClosestObject(msg.pose, self.objects)
+        self.obstacle = self.findClosestObject(msg.pose, self.objects)
 
     def findClosestObject(self, pose, objects):
         min_dist = 1000000
@@ -90,6 +95,8 @@ class AutoIntervention():
             if min_dist > dist:
                 min_dist = dist
                 closest_object = object
+
+        return closest_object.id
 
     def objectsCb(self, msg):
         self.objects = msg.objects
@@ -116,25 +123,26 @@ class AutoIntervention():
 
         self.allow_intervention = self.is_intervention_trial and \
                                   self.current_progress > self.start_intervention_time and \
-                                  self.intervention_count < len(self.intervention_target) and \
-                                  self.obstacle not in self.intervention_target_list
+                                  (len(self.intervened_target) < self.max_intervention_count or self.obstacle in self.intervened_target) and \
+                                  self.obstacle not in self.no_intervention_list and \
+                                  self.is_obstacle_on_path
 
-        print("start_time: {}, start_mileage:{}, count{}".format(self.start_intervention_time, self.start_intervention_mileage, self.intervention_count))
+        print("start_time: {}, obstacle:{}, list{}, no_list{}".format(self.start_intervention_time, self.obstacle, self.intervened_target, self.no_intervention_list))
 
         if self.allow_intervention:
-            if autoware_speed > carla_speed * (1.0 + vel_eps) and self.is_obstacle_on_path:
+            if autoware_speed > carla_speed * (1.0 + vel_eps):
                 self.pub_string.publish(String(data='Brake'))
-                out_twist.twist_cmd.twist.linear.x = carla_speed
+                out_twist.twist_cmd.twist.linear.x = carla_speed * 0.5
                 self.pub_intervention.publish(Bool(data=True))
-                if self.obstacle.id not in self.intervention_target:
-                    self.intervention_target.append(self.obstacle.id)
+                if self.obstacle not in self.intervened_target:
+                    self.intervened_target.append(self.obstacle)
 
-            elif autoware_speed < carla_speed * (1.0 - vel_eps) and self.is_obstacle_on_path:
+            elif autoware_speed < carla_speed * (1.0 - vel_eps):
                 self.pub_string.publish(String(data='Accel'))
-                out_twist.twist_cmd.twist.linear.x = carla_speed
+                out_twist.twist_cmd.twist.linear.x = carla_speed * 1.5
                 self.pub_intervention.publish(Bool(data=True))
-                if self.obstacle.id not in self.intervention_target:
-                    self.intervention_target.append(self.obstacle.id)
+                if self.obstacle not in self.intervened_target:
+                    self.intervened_target.append(self.obstacle)
 
             else:
                 self.pub_string.publish(String(data=''))
@@ -161,12 +169,10 @@ class AutoIntervention():
         self.pub_twist.publish(out_twist)
 
     def log_int_mileage(self):
-        if not self.intervention_target:
-            return
-            
-        out_list = self.intervention_target_list + [str(v) for v in self.intervention_target]
-        with open("last_int_distance.txt", "w") as f:
-            f.write(out_list)
+
+        out_dict = {"no_list" : self.no_intervention_list, "last_list" : self.intervened_target}
+        with open("intervened_target.pickle", "wb") as f:
+            pickle.dump(out_dict, f)
 
 
 if __name__ == '__main__':
