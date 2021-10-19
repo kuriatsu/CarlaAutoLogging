@@ -30,16 +30,17 @@ if __name__ == "__main__":
             end_index = i
             break
 
+    print("int_data : start, end" , start_index , end_index)
 
     if start_index is None:
         print("can't get pre 33 drive")
-        print(first_intervention_index)
+        print("first_intervention_index:", first_intervention_index)
         exit()
     elif end_index is None:
         print("can't keep segment longer than 50sec")
-        print(drive_data.get('time') - data.get('drive_data')[start_index].get('time'))
+        print("time=", drive_data.get('time') - data.get('drive_data')[start_index].get('time'))
         exit()
-        
+
     # save data
     out_intervention_data = {'waypoint' : data.get('waypoint')}
     out_intervention_data['drive_data'] = data["drive_data"][start_index:end_index]
@@ -56,13 +57,16 @@ if __name__ == "__main__":
     start_index = None
     end_index = None
     for i, drive_data in enumerate(no_int_data.get('drive_data')):
-        if start_index is None and drive_data.get('mileage_progress') > out_intervention_data.get('drive_data')[0].get('mileage_progress'):
+        if i <= 5:
+            continue
+        # print(i, drive_data.get('mileage_progress'), out_intervention_data.get('drive_data')[0].get('mileage_progress'))
+        if start_index is None and drive_data.get('simulate_progress') > out_intervention_data.get('drive_data')[0].get('simulate_progress'):
             start_index = i
-        if start_index is not None and drive_data.get('mileage_progress') > out_intervention_data.get('drive_data')[-1].get('mileage_progress'):
+        if start_index is not None and drive_data.get('simulate_progress') > out_intervention_data.get('drive_data')[-1].get('simulate_progress'):
             end_index = i
             break
 
-    print(start_index , end_index)
+    print("noint_data : start, end" , start_index , end_index)
 
     if start_index is None or end_index is None:
         print('failed to extract no_int data')
@@ -74,23 +78,30 @@ if __name__ == "__main__":
     print(out_nointervention_data.get('drive_data')[-1].get('time') - out_nointervention_data.get('drive_data')[0].get('time'))
 
     # shift mileage and simulate progress value
+    start_mileage = out_intervention_data['drive_data'][0]['mileage_progress']
+    total_mileage = out_intervention_data['drive_data'][-1]['mileage_progress'] - out_intervention_data['drive_data'][0]['mileage_progress']
+    start_progress = out_intervention_data['drive_data'][0]['simulate_progress']
+    total_progress = out_intervention_data['drive_data'][-1]['simulate_progress'] - out_intervention_data['drive_data'][0]['simulate_progress']
+    last_mileage_progress = None
     for drive_data in out_intervention_data.get('drive_data'):
-        start_mileage = out_intervention_data['drive_data'][0]['mileage_progress']
-        total_mileage = out_intervention_data['drive_data'][-1]['mileage_progress'] - out_intervention_data['drive_data'][0]['mileage_progress']
-        start_progress = out_intervention_data['drive_data'][0]['simulate_progress']
-        total_progress = out_intervention_data['drive_data'][-1]['simulate_progress'] - out_intervention_data['drive_data'][0]['simulate_progress']
-
         drive_data['mileage_progress'] = (drive_data['mileage_progress'] - start_mileage) / total_mileage
+        # avoid mileage progrss noise caused by looped route
+        if last_mileage_progress is not None and (drive_data['mileage_progress'] - last_mileage_progress < 0 or drive_data['mileage_progress'] - last_mileage_progress > 10):
+            drive_data['mileage_progress'] = last_mileage_progress
+        last_mileage_progress = drive_data['mileage_progress']
         drive_data['simulate_progress'] = (drive_data['simulate_progress'] - start_progress) / total_progress
         print(drive_data['simulate_progress'], drive_data['mileage_progress'])
 
+    start_mileage = out_nointervention_data['drive_data'][0]['mileage_progress']
+    total_mileage = out_nointervention_data['drive_data'][-1]['mileage_progress'] - out_nointervention_data['drive_data'][0]['mileage_progress']
+    start_progress = out_nointervention_data['drive_data'][0]['simulate_progress']
+    total_progress = out_nointervention_data['drive_data'][-1]['simulate_progress'] - out_nointervention_data['drive_data'][0]['simulate_progress']
     for drive_data in out_nointervention_data.get('drive_data'):
-        start_mileage = out_nointervention_data['drive_data'][0]['mileage_progress']
-        total_mileage = out_nointervention_data['drive_data'][-1]['mileage_progress'] - out_nointervention_data['drive_data'][0]['mileage_progress']
-        start_progress = out_nointervention_data['drive_data'][0]['simulate_progress']
-        total_progress = out_nointervention_data['drive_data'][-1]['simulate_progress'] - out_nointervention_data['drive_data'][0]['simulate_progress']
-
         drive_data['mileage_progress'] = (drive_data['mileage_progress'] - start_mileage) / total_mileage
+        # avoid mileage progrss noise caused by looped route
+        if last_mileage_progress is not None and (drive_data['mileage_progress'] - last_mileage_progress < 0 or drive_data['mileage_progress'] - last_mileage_progress > 10):
+            drive_data['mileage_progress'] = last_mileage_progress
+        last_mileage_progress = drive_data['mileage_progress']
         drive_data['simulate_progress'] = (drive_data['simulate_progress'] - start_progress) / total_progress
         print(drive_data['simulate_progress'], drive_data['mileage_progress'])
 

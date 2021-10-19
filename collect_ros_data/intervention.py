@@ -23,17 +23,19 @@ class AutoIntervention():
         self.is_obstacle_on_path = False
         self.carla_speed = None
 
-        self.intervention_count = 0
-        self.last_intervention_time = None
-        self.last_intervention_mileage = None
-        self.allow_intervention = False
-        self.intervention_gap = 1.0
         self.progress_as_succeed = 90.0
         self.current_mileage = 0.0
 
         # remove detection noise
-        self.last_obstacle_time = None
-        self.obstacle_detection_gap = 1.0
+        # self.last_obstacle_time = None
+        # self.obstacle_detection_gap = 1.0
+        # self.last_intervention_mileage = None
+        self.last_intervention_time = None
+        self.last_intervention_twist = None
+        self.intervention_duration = 0.5
+
+        self.intervention_count = 0
+        # self.allow_intervention = False
 
         # intervention control
         self.start_intervention_time = 33.0
@@ -72,14 +74,14 @@ class AutoIntervention():
 
         self.is_obstacle_on_path = False
         # remove noise
-        if self.last_obstacle_time is not None:
-            if rospy.Time.now() - self.last_obstacle_time < rospy.Duration(self.obstacle_detection_gap):
-                self.is_obstacle_on_path = True
+        # if self.last_obstacle_time is not None:
+        #     if rospy.Time.now() - self.last_obstacle_time < rospy.Duration(self.obstacle_detection_gap):
+        #         self.is_obstacle_on_path = True
 
         for marker in msg.markers:
             if marker.ns == 'Stop Line' and marker.color.g == 1.0: # for deceleration object
                 self.is_obstacle_on_path = True
-                self.last_obstacle_time = rospy.Time.now()
+                # self.last_obstacle_time = rospy.Time.now()
 
     def obstacleCb(self, msg):
         if self.objects is None:
@@ -113,7 +115,7 @@ class AutoIntervention():
             self.setZeroSpeed()
             return
 
-        vel_eps = 0.3 # allow rate
+        vel_eps = 0.2 # allow rate
 
         carla_speed = self.carla_speed
         autoware_speed = msg.twist.linear.x
@@ -121,36 +123,46 @@ class AutoIntervention():
         out_twist = VehicleCmd()
         out_twist.twist_cmd.twist = msg.twist
 
-        self.allow_intervention = self.is_intervention_trial and \
-                                  self.current_progress > self.start_intervention_time and \
-                                  (len(self.intervened_target) < self.max_intervention_count or self.obstacle in self.intervened_target) and \
-                                  self.obstacle not in self.no_intervention_list and \
-                                  self.is_obstacle_on_path
+        if self.last_intervention_time is not None and rospy.Time.now() - self.last_intervention_time < rospy.Duration(self.intervention_duration):
+            self.pub_string.publish(String(data='keep'))
+            self.pub_intervention.publish(Bool(data=True))
+            out_twist.twist_cmd.twist.linear.x = self.last_intervention_twist.twist_cmd.twist.linear.x
 
-        print("start_time: {}, obstacle:{}, list{}, no_list{}".format(self.start_intervention_time, self.obstacle, self.intervened_target, self.no_intervention_list))
+        else:
+            is_allow_intervention = self.is_intervention_trial and \
+                                      self.current_progress > self.start_intervention_time and \
+                                      (len(self.intervened_target) < self.max_intervention_count or self.obstacle in self.intervened_target) and \
+                                      self.obstacle not in self.no_intervention_list and \
+                                      self.is_obstacle_on_path
 
-        if self.allow_intervention:
-            if autoware_speed > carla_speed * (1.0 + vel_eps):
-                self.pub_string.publish(String(data='Brake'))
-                out_twist.twist_cmd.twist.linear.x = carla_speed * 0.5
-                self.pub_intervention.publish(Bool(data=True))
-                if self.obstacle not in self.intervened_target:
-                    self.intervened_target.append(self.obstacle)
+            print("start_time: {}, obstacle:{}, list{}, no_list{}".format(self.start_intervention_time, self.obstacle, self.intervened_target, self.no_intervention_list))
 
-            elif autoware_speed < carla_speed * (1.0 - vel_eps):
-                self.pub_string.publish(String(data='Accel'))
-                out_twist.twist_cmd.twist.linear.x = carla_speed * 1.5
-                self.pub_intervention.publish(Bool(data=True))
-                if self.obstacle not in self.intervened_target:
-                    self.intervened_target.append(self.obstacle)
+            if is_allow_intervention:
+                if autoware_speed > carla_speed * (1.0 + vel_eps):
+                    self.pub_string.publish(String(data='Brake'))
+                    out_twist.twist_cmd.twist.linear.x = carla_speed * 0.5
+                    self.pub_intervention.publish(Bool(data=True))
+                    self.last_intervention_time = rospy.Time.now()
+                    self.last_intervention_twist = out_twist
+                    if self.obstacle not in self.intervened_target:
+                        self.intervened_target.append(self.obstacle)
+
+                elif autoware_speed < carla_speed * (1.0 - vel_eps):
+                    self.pub_string.publish(String(data='Accel'))
+                    out_twist.twist_cmd.twist.linear.x = carla_speed * 1.5
+                    self.pub_intervention.publish(Bool(data=True))
+                    self.last_intervention_time = rospy.Time.now()
+                    self.last_intervention_twist = out_twist
+                    if self.obstacle not in self.intervened_target:
+                        self.intervened_target.append(self.obstacle)
+
+                else:
+                    self.pub_string.publish(String(data='No Need'))
+                    self.pub_intervention.publish(Bool(data=False))
 
             else:
                 self.pub_string.publish(String(data=''))
                 self.pub_intervention.publish(Bool(data=False))
-
-        else:
-            self.pub_string.publish(String(data=''))
-            self.pub_intervention.publish(Bool(data=False))
 
         # sys.stdout.write('\r' + str(out_twist.twist_cmd.twist.angular.z) + ' : ' + str(autoware_speed) + ' : ' + str(carla_speed))
         self.pub_twist.publish(out_twist)

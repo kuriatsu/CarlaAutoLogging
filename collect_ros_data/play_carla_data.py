@@ -128,6 +128,7 @@ class PlayCarlaData():
         self.pubActorObject(actor_data)
 
         current_waypoint = self.getClosestWaypoint(self.waypoint, self.current_pose.position)
+        # print(self.waypoint, current_waypoint, self.current_pose)
         self.pubConfigReplanner(self.waypoint[current_waypoint].get('speed_limit'))
         self.pub_carla_speed.publish(Float32(data=self.waypoint[current_waypoint].get('speed')))
         self.pub_mileage_progress.publish(Float32(data=(100*current_waypoint/(len(self.waypoint)-1))))
@@ -325,7 +326,7 @@ class PlayCarlaData():
 
     def getClosestWaypoint(self, waypoint, point):
         min_dist = 1000000
-        closest_waypoint = None
+        closest_waypoint = 0
         for i, data in enumerate(waypoint):
             dist = (point.x - data.get('x')) ** 2 + (point.y - data.get('y')) ** 2
             if min_dist > dist:
