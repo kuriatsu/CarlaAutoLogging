@@ -1,34 +1,34 @@
 #!/bin/bash
 save_dir="/media/kuriatsu/Samsung_TC2019/carla_drive_data"
 play_list=(
-    "Town01,town01_vacant,20,60,0,10"
-	"Town01,town01_vacant,20,60,10,20"
-    "Town01,town01_crowd,40,100,0,10"
-	"Town01,town01_crowd,40,100,10,20"
-    "Town02,town02_vacant,20,60,0,10"
-	"Town02,town02_vacant,20,60,10,20"
-    "Town02,town02_crowd,40,100,0,10"
-	"Town02,town02_crowd,40,100,10,20"
-    "Town03,town03_vacant,60,80,0,10"
-	"Town03,town03_vacant,60,80,10,20"
-    "Town03,town03_crowd,100,120,0,10"
-	"Town03,town03_crowd,100,120,10,20"
-    "Town04,town04_vacant,60,60,0,10"
-	"Town04,town04_vacant,60,60,10,20"
-    "Town04,town04_crowd,100,100,0,10"
-	"Town04,town04_crowd,100,100,10,20"
-    "Town05,town05_vacant,60,80,0,10"
-	"Town05,town05_vacant,60,80,10,20"
-    "Town05,town05_crowd,100,120,0,10"
-	"Town05,town05_crowd,100,120,10,20"
-    "Town06,town06_vacant,60,80,0,10"
-	"Town06,town06_vacant,60,80,10,20"
-    "Town06,town06_crowd,100,120,0,10"
-	"Town06,town06_crowd,100,120,10,20"
-    "Town07,town07_vacant,20,60,0,10"
-	"Town07,town07_vacant,20,60,10,20"
-    "Town07,town07_crowd,40,100,0,10"
-	"Town07,town07_crowd,40,100,10,20"
+    "Town01,town01_vacant,20,60,20,30"
+	"Town01,town01_vacant,20,60,30,40"
+    "Town01,town01_crowd,40,100,20,30"
+	"Town01,town01_crowd,40,100,30,40"
+    "Town02,town02_vacant,20,60,20,30"
+	"Town02,town02_vacant,20,60,30,40"
+    "Town02,town02_crowd,40,100,20,30"
+	"Town02,town02_crowd,40,100,30,40"
+    "Town03,town03_vacant,60,80,20,30"
+	"Town03,town03_vacant,60,80,30,40"
+    "Town03,town03_crowd,100,120,20,30"
+	"Town03,town03_crowd,100,120,30,40"
+    "Town04,town04_vacant,60,60,20,30"
+	"Town04,town04_vacant,60,60,30,40"
+    "Town04,town04_crowd,100,100,20,30"
+	"Town04,town04_crowd,100,100,30,40"
+    "Town05,town05_vacant,60,80,20,30"
+	"Town05,town05_vacant,60,80,30,40"
+    "Town05,town05_crowd,100,120,20,30"
+	"Town05,town05_crowd,100,120,30,40"
+    "Town06,town06_vacant,60,80,20,30"
+	"Town06,town06_vacant,60,80,30,40"
+    "Town06,town06_crowd,100,120,20,30"
+	"Town06,town06_crowd,100,120,30,40"
+    "Town07,town07_vacant,20,60,20,30"
+	"Town07,town07_vacant,20,60,30,40"
+    "Town07,town07_crowd,40,100,20,30"
+	"Town07,town07_crowd,40,100,30,40"
 	)
 
 # play rosbag & start aidi
@@ -53,7 +53,19 @@ for play_data in ${play_list[@]}; do
         echo start logging
         python save_carla_data.py $save_dir/$file_name $start $end_num
         kill -2 $spawn_np_ps
-        start_num=$(find $save_dir -name "*$file_name*.pickle" | wc -l)
+
+        max="${save_dir}/${file_name}_${start}_time.pickle"
+        for file_name in $(find $save_dir -name "*$file_name*_time.pickle"); do
+            if [[ "${save_dir}/${file_name}_${start}_time.pickle" < $file_name ]]; then
+                if [[ $file_name < "${save_dir}/${file_name}_${end}_time.pickle" ]]; then
+                    if [[ $file_name > $max ]]; then
+                        max=$file_name
+                    fi
+                fi
+            fi
+        done
+        buf=${max%_*}
+        start=${buf##*_}
     done
 
 
