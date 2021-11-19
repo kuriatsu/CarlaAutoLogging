@@ -294,9 +294,9 @@ def main():
         time_step_data = []
         waypoint = []
 
-        client.start_recorder(log_file)
+        # client.start_recorder(log_file)
         driveLoop(world, actor_list, ego_vehicle, dist_step_data, time_step_data, waypoint)
-        client.stop_recorder()
+        # client.stop_recorder()
 
         with open(dist_step_file, 'wb') as f:
             pickle.dump(dist_step_data, f)

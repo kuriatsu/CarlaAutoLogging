@@ -127,16 +127,16 @@ class PlayCarlaData():
         self.pubActorCloud(actor_data)
         self.pubActorObject(actor_data)
 
-        current_waypoint = self.getClosestWaypoint(self.waypoint, self.current_pose.position)
-        # print(self.waypoint, current_waypoint, self.current_pose)
-        self.pubConfigReplanner(self.waypoint[current_waypoint].get('speed_limit'))
-        self.pub_carla_speed.publish(Float32(data=self.waypoint[current_waypoint].get('speed')))
-        self.pub_mileage_progress.publish(Float32(data=(100*current_waypoint/(len(self.waypoint)-1))))
-        self.pub_mileage.publish(Float32(data=(current_waypoint)))
+        self.closest_waypoint = self.getClosestWaypoint(self.waypoint, self.current_pose.position)
+        # print(self.waypoint, self.closest_waypoint, self.current_pose)
+        self.pubConfigReplanner(self.waypoint[self.closest_waypoint].get('speed_limit'))
+        self.pub_carla_speed.publish(Float32(data=self.waypoint[self.closest_waypoint].get('speed')))
+        self.pub_mileage_progress.publish(Float32(data=(100*self.closest_waypoint/(len(self.waypoint)-1))))
+        self.pub_mileage.publish(Float32(data=(self.closest_waypoint)))
 
         # Judge finish
         if self.current_data_index == len(self.data)-1:
-        # if self.current_data_index == len(self.data)-1 or 100*current_waypoint/(len(self.waypoint)-1) >= 95.0:
+        # if self.current_data_index == len(self.data)-1 or 100*self.closest_waypoint/(len(self.waypoint)-1) >= 95.0:
             rospy.signal_shutdown("finish")
 
 
@@ -327,8 +327,8 @@ class PlayCarlaData():
     def getClosestWaypoint(self, waypoint, point):
         min_dist = 1000000
         closest_waypoint = 0
-        for i, data in enumerate(waypoint):
-            dist = (point.x - data.get('x')) ** 2 + (point.y - data.get('y')) ** 2
+        for i in range(self.closest_waypoint, min(self.closest_waypoint+20, len(waypoint))):
+            dist = (point.x - waypoint[i].get('x')) ** 2 + (point.y - waypoint[i].get('y')) ** 2
             if min_dist > dist:
                 min_dist = dist
                 closest_waypoint = i
